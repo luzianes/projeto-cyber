@@ -10,7 +10,7 @@
   </a>
   <div class="container">
     {% if erro %}
-    <p style="color: black;">{{ erro }}</p>
+    <p style="color: #a94442; background-color: #f2dede; border: 1px solid #ebccd1; padding: 10px; border-radius: 4px; font-weight: bold;">{{ erro }}</p>
     {% endif %}
     {% if messages %}
     <div class="messages">
@@ -60,12 +60,12 @@
             <input type="url" name="site_cafeteria" id="site_cafeteria">
           </div>
           <div class="campo">
-            <label for="cnpj">CNPJ (apenas números):</label>
+            <label for="cnpj">CNPJ (14 dígitos, apenas números, sem pontuação):</label>
             <input type="text" name="cnpj" id="cnpj" required>
           </div>
           <div class="campo">
-            <label for="whatsapp">Whatsapp da empresa (sem espaço e apenas números):</label>
-            <input type="tel" id="whatsapp" name="whatsapp">
+            <label for="whatsapp">Whatsapp da empresa (13 dígitos com DDI+DDD, ex: 5581999999999):</label>
+            <input type="tel" id="whatsapp" name="whatsapp" required>
           </div>
           <div class="campo">
             <label for="foto_ambiente">Para deixar seu perfil mais atrativo, 

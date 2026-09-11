@@ -52,8 +52,11 @@ class Cafe(models.Model):
         else:
             return self.descricao
     
+    def avaliacoes_publicadas(self):
+        return self.avaliacao_set.filter(classificacao_ia='aprovado').order_by('-data_avaliacao')
+
     def media_avaliacoes(self):
-        media = self.avaliacao_set.aggregate(Avg('avaliacao'))['avaliacao__avg']
+        media = self.avaliacoes_publicadas().aggregate(Avg('avaliacao'))['avaliacao__avg']
         if media is not None:
             return round(media, 1)
         return None
@@ -72,7 +75,7 @@ class Cafe(models.Model):
             '180-200': 190,
             '200+': 210
         }
-        valores_gasto = self.avaliacao_set.values_list('valor_gasto', flat=True)
+        valores_gasto = self.avaliacoes_publicadas().values_list('valor_gasto', flat=True)
         valores_numericos = [faixas[v] for v in valores_gasto if v in faixas]
         if valores_numericos:
             media_numerica = sum(valores_numericos) / len(valores_numericos)
@@ -155,6 +158,12 @@ class ReservaCafe(models.Model):
         return f"Reserva no {self.cafe.nome_cafeteria} por {self.cliente.nome_completo}"
     
 class Avaliacao(models.Model):
+    STATUS_MODERACAO = [
+        ('pendente', 'Pendente'),
+        ('aprovado', 'Aprovado'),
+        ('rejeitado', 'Rejeitado'),
+    ]
+
     cafe = models.ForeignKey(Cafe, on_delete=models.CASCADE)
     cliente = models.ForeignKey(UserCliente, on_delete=models.CASCADE)
     avaliacao = models.IntegerField(choices=[(i, i) for i in range(1, 6)], default=1)
@@ -162,6 +171,8 @@ class Avaliacao(models.Model):
     valor_gasto = models.CharField(max_length=50, blank=True, null=True)
     data_avaliacao = models.DateTimeField(auto_now_add=True)
     foto_avaliacao= models.ImageField(upload_to='fotos_experiencias/', blank=True, null=True)
+    classificacao_ia = models.CharField(max_length=10, choices=STATUS_MODERACAO, default='pendente')
+    justificativa_ia = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"Avaliação de {self.cliente.nome_completo} para {self.cafe.nome_cafeteria}"

@@ -565,8 +565,8 @@
 
 <h1>Avaliações</h1>
 <div class="container2">
-    {% if cafe.avaliacao_set.all %}
-    {% for avaliacao in cafe.avaliacao_set.all %}
+    {% if cafe.avaliacoes_publicadas %}
+    {% for avaliacao in cafe.avaliacoes_publicadas %}
     <div class="review-card">
         <div class="review-content-wrapper">
             <div class="review-header">

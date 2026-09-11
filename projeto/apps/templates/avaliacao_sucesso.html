@@ -86,12 +86,28 @@ h1 {
     text-decoration: none;
     text-align: center;
 }
-    
+
+.ia-status {
+    max-width: 500px;
+    margin: 0 auto 1em auto;
+    padding: 12px 16px;
+    border-radius: 6px;
+    text-align: center;
+}
+.ia-status.success { background-color: #dff0d8; color: #3c763d; }
+.ia-status.warning { background-color: #fcf8e3; color: #8a6d3b; }
+.ia-status.info { background-color: #d9edf7; color: #31708f; }
+
 </style>
 
 <div class="div">
     <img class="check" src="{% static '../static/images/check-mark.png' %}">
     <h1>Avaliação enviada com sucesso!</h1>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="ia-status {{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
     <a class="botao-pag-inicial" href="{% url 'home' %}">Voltar para home</a>
 </div>
 {% endblock content %}

@@ -19,6 +19,7 @@ import json
 from django.core.files.storage import FileSystemStorage
 import random
 from django.http import JsonResponse
+from .ai_moderation import classify_review
 
 def home(request):
     cafes = Cafe.objects.all()
@@ -82,7 +83,6 @@ def cadastro_cafeteria(request):
         link_redesocial = request.POST.get('link_redesocial', '')
         cnpj = request.POST.get('cnpj')
         site_cafeteria = request.POST.get('site_cafeteria')
-        foto_ambiente = request.POST.get('foto_ambiente')
 
         if not whatsapp.isdigit() or len(whatsapp) != 13:
             return render(request, 'cadastro_cafeteria.html', {"erro": "O número de WhatsApp deve ter 13 dígitos."})
@@ -96,9 +96,6 @@ def cadastro_cafeteria(request):
         if Cafe.objects.filter(cnpj=cnpj).exists():
             return render(request, 'cadastro_cafeteria.html', {"erro": "O CNPJ já está em uso."})
         
-        if foto_ambiente in request.FILES:
-            cafe.foto_ambiente = request.FILES['foto_ambiente']
-
         cafe = Cafe(
             responsavel=responsavel,
             nome_cafeteria=nome_cafeteria,
@@ -507,7 +504,7 @@ def UserCadastro(request):
         user = User.objects.create_user(username=username, password=password, email=email, first_name=name)
 
         if is_business:
-            empresario_group = Group.objects.get(name='Empresários')
+            empresario_group, _ = Group.objects.get_or_create(name='Empresários')
             user.groups.add(empresario_group)
 
         user_cliente = UserCliente(user=user, nome_completo=name, email=email, is_business=is_business)
@@ -562,16 +559,32 @@ def avaliar_cafe(request, cafe_id):
             messages.error(request, 'Por favor, preencha todos os campos obrigatórios.')
             return render(request, 'avaliar_cafe.html', {'cafe': cafe, 'range': range(1, 6)})
 
+        resultado_ia = classify_review(comentario, cliente_email=cliente.email)
+
         Avaliacao.objects.create(
             cafe=cafe,
             cliente=cliente,
             avaliacao=int(avaliacao),
             comentario=comentario,
             valor_gasto=valor_gasto,
-            foto_avaliacao=foto_experiencia
+            foto_avaliacao=foto_experiencia,
+            classificacao_ia=resultado_ia.status,
+            justificativa_ia=resultado_ia.raw_response,
         )
 
-        messages.success(request, 'Avaliação enviada com sucesso.')
+        if resultado_ia.status == 'rejeitado':
+            messages.warning(
+                request,
+                'Sua avaliação foi enviada, mas ficou retida pela moderação automática '
+                'e não aparecerá publicamente até revisão.'
+            )
+        elif resultado_ia.status == 'pendente':
+            messages.info(
+                request,
+                'Sua avaliação foi enviada e está aguardando moderação.'
+            )
+        else:
+            messages.success(request, 'Avaliação enviada com sucesso.')
         return redirect('avaliacao_sucesso')
 
     return render(request, 'avaliar_cafe.html', {'cafe': cafe, 'range': range(1, 6)})

@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-load_dotenv(BASE_DIR / 'projeto.env')
+load_dotenv(BASE_DIR.parent / 'projeto.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -162,7 +162,41 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-#No arquivo settings.py do seu projeto, adicione a configuração para o envio de emails. 
+# Chave da API do Gemini usada na moderação/classificação de avaliações por IA.
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+
+# Logging de eventos de segurança (login, moderação de IA, etc.)
+LOG_DIR = BASE_DIR / 'logs'
+LOG_DIR.mkdir(exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'security': {
+            'format': '%(asctime)s [%(levelname)s] %(message)s',
+        },
+    },
+    'handlers': {
+        'security_file': {
+            'class': 'logging.FileHandler',
+            'filename': LOG_DIR / 'security.log',
+            'formatter': 'security',
+        },
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'security': {
+            'handlers': ['security_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+#No arquivo settings.py do seu projeto, adicione a configuração para o envio de emails.
 #Aqui está um exemplo usando o backend de email do console para fins de desenvolvimento (isso apenas imprimirá o email no console, 
 #ao invés de enviá-lo):
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

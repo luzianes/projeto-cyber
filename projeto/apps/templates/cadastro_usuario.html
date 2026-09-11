@@ -10,11 +10,9 @@
         {% if messages %}
         <div class="messages">
             {% for message in messages %}
-                {% if 'cadastro_usuario' in message.tags %}
-                    <div class="{{ message.tags }}">
-                      <p style="color: red;">{{ message }}</p>
-                    </div>
-                {% endif %}
+                <div class="{{ message.tags }}">
+                  <p style="color: red;">{{ message }}</p>
+                </div>
             {% endfor %}
         </div>
         {% endif %}
