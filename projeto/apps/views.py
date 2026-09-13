@@ -229,7 +229,8 @@ def detalhes_anonimo(request, cafe_id):
 
 @login_required
 def editar_reserva(request, reserva_id):
-    reserva = get_object_or_404(ReservaCafe, id=reserva_id)
+    # Autorização em nível de objeto: só o dono da reserva pode editá-la.
+    reserva = get_object_or_404(ReservaCafe, id=reserva_id, cliente__email=request.user.email)
     cafe = reserva.cafe
     
     if request.method == 'POST':
@@ -302,6 +303,7 @@ def enviar_whatsapp(request, cafe_id):
         messages.error(request, "Número de WhatsApp não disponível.")
         return HttpResponseRedirect(reverse('perfil_cafeteria', args=[cafe_id]))
 
+@login_required
 def enviar_email(request, cafe_id):
     cafeteria = get_object_or_404(Cafe, pk=cafe_id)
     if request.method == 'POST':
@@ -319,7 +321,8 @@ def enviar_email(request, cafe_id):
 
 @login_required
 def excluir_reserva(request, reserva_id):
-    reserva = get_object_or_404(ReservaCafe, id=reserva_id)
+    # Autorização em nível de objeto: só o dono da reserva pode excluí-la.
+    reserva = get_object_or_404(ReservaCafe, id=reserva_id, cliente__email=request.user.email)
     
     if request.method == 'POST':
         reserva.delete()
@@ -445,20 +448,24 @@ def login_view(request):
         email = request.POST.get('email')
         password = request.POST.get('password')
         
+        # Mensagem única para e-mail inexistente E senha errada: não revela
+        # quais e-mails estão cadastrados (anti-enumeração de usuários).
+        credenciais_invalidas = 'E-mail ou senha inválidos.'
+
         try:
             username = User.objects.get(email=email).username
-        except ObjectDoesNotExist:
-            return render(request, 'login.html', {'error': 'Usuário não encontrado'})
+        except (ObjectDoesNotExist, User.MultipleObjectsReturned):
+            return render(request, 'login.html', {'error': credenciais_invalidas})
 
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
             if user.groups.filter(name='Empresários').exists():
                 return redirect('cafeterias_empresarios')
-            else: 
+            else:
                 return redirect('home')
         else:
-            return render(request, 'login.html', {'error': 'Usuário ou senha inválidos'})
+            return render(request, 'login.html', {'error': credenciais_invalidas})
         
     return render(request, 'login.html')
 
@@ -649,6 +656,7 @@ def editar_perfil(request):
 def editar_perfil_sucesso(request):
     return render(request, 'editar_perfil_sucesso.html')
 
+@login_required
 def editar_cadastro_cafe(request, cafe_id):
     # Obter o UserCliente associado ao usuário logado
     user_cliente = request.user.usercliente

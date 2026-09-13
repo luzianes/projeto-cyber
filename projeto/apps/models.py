@@ -4,6 +4,8 @@ from django.contrib.auth.models import User
 from django.db.models import Avg
 from datetime import datetime
 
+from .crypto_fields import EncryptedCharField, EncryptedTextField
+
 class UserCliente(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
     nome_completo = models.CharField(max_length=150, default="Desconhecido")
@@ -130,11 +132,13 @@ class Historico(models.Model):
 class ReservaCafe(models.Model):
     cafe = models.ForeignKey(Cafe, on_delete=models.PROTECT)
     cliente = models.ForeignKey(UserCliente, on_delete=models.PROTECT)
-    nome_cliente = models.CharField(max_length=100, blank=True, null=True)
+    # Dados pessoais da reserva cifrados em repouso (criptografia simétrica
+    # Fernet/AES). Ver apps/crypto_fields.py para a justificativa completa.
+    nome_cliente = EncryptedCharField(blank=True, null=True)
     data_reserva = models.DateField()
     horario_reserva = models.TimeField()
     numero_de_pessoas = models.PositiveIntegerField(default=0)
-    observacao = models.TextField(blank=False, default='Descrição não informada')
+    observacao = EncryptedTextField(blank=False, default='Descrição não informada')
 
 
     @property

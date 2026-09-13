@@ -165,6 +165,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Chave da API do Gemini usada na moderação/classificação de avaliações por IA.
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
 
+# Chave da criptografia SIMÉTRICA (Fernet/AES) usada para cifrar em repouso os
+# dados pessoais das reservas (ver apps/crypto_fields.py). A chave vive FORA do
+# banco de dados, em variável de ambiente, para que um dump do banco não seja
+# suficiente para ler os dados. Gere uma chave com:
+#   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+FIELD_ENCRYPTION_KEY = os.getenv('FIELD_ENCRYPTION_KEY', '')
+
 # Logging de eventos de segurança (login, moderação de IA, etc.)
 LOG_DIR = BASE_DIR / 'logs'
 LOG_DIR.mkdir(exist_ok=True)
