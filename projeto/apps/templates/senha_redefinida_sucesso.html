@@ -1,0 +1,15 @@
+{% extends "global/base_sem_footer.html" %}
+{% block content %}
+{% load static %}
+
+<link rel="stylesheet" href="{% static '../static/css/style_login.css' %}">
+<section class="section">
+    <div class="container">
+        <h1>Senha alterada</h1>
+        <p>Sua senha foi redefinida com sucesso.</p>
+        <div class="signup-message">
+            <a href="{% url 'login' %}" class="btn">Entrar</a>
+        </div>
+    </div>
+</section>
+{% endblock content %}

@@ -1,0 +1,32 @@
+{% extends "global/base_sem_footer.html" %}
+{% block content %}
+{% load static %}
+
+<link rel="stylesheet" href="{% static '../static/css/style_login.css' %}">
+<section class="section">
+    <div class="container">
+        <h1>Criar nova senha</h1>
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <div class="{{ message.tags }}">
+                    <p style="color: red;">{{ message }}</p>
+                </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        <form class="login" method="post">
+            {% csrf_token %}
+            <div class="box-user">
+                <label>Nova senha</label><br>
+                <input type="password" name="password" minlength="8" required><br>
+            </div>
+            <div class="box-user">
+                <label>Confirme a nova senha</label><br>
+                <input type="password" name="confirm_password" minlength="8" required><br>
+            </div>
+            <button type="submit" class="btn-submit">Salvar senha</button>
+        </form>
+    </div>
+</section>
+{% endblock content %}

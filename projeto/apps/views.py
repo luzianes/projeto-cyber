@@ -2,17 +2,23 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .models import *
 from .models import Cafe, Avaliacao, UserCliente, Favorito
 from datetime import datetime
+from django.conf import settings
 from django.http import HttpResponseRedirect, Http404
 from django.core.mail import send_mail
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.models import User
+from django.contrib.auth.tokens import default_token_generator
+from django.template.loader import render_to_string
 from django.urls import reverse
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models import Q
 from django.contrib.auth.models import Group
 from django.contrib.auth import logout as auth_logout
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils import timezone
 from django.db.models import Max
 import json
@@ -22,6 +28,7 @@ from django.http import JsonResponse
 from .ai_moderation import classify_review
 
 logger = logging.getLogger('security')
+LOGIN_ERROR_MESSAGE = 'Usuario ou senha invalidos.'
 
 def home(request):
     cafes = Cafe.objects.all()
@@ -323,7 +330,7 @@ def enviar_email(request, cafe_id):
         send_mail(
             'Mensagem do MyCafeApp',
             mensagem,
-            'from@example.com',
+            settings.DEFAULT_FROM_EMAIL,
             [cafeteria.email],
             fail_silently=False,
         )
@@ -464,17 +471,17 @@ def limpar_historico_duplicado():
 
 def login_view(request):
     if request.method == 'POST':
-        email = request.POST.get('email')
-        password = request.POST.get('password')
+        email = request.POST.get('email', '').strip()
+        password = request.POST.get('password', '')
         
         # Mensagem única para e-mail inexistente E senha errada: não revela
         # quais e-mails estão cadastrados (anti-enumeração de usuários).
-        credenciais_invalidas = 'E-mail ou senha inválidos.'
+        credenciais_invalidas = LOGIN_ERROR_MESSAGE
 
         ip = request.META.get('REMOTE_ADDR')
 
         try:
-            username = User.objects.get(email=email).username
+            username = User.objects.get(email__iexact=email).username
         except (ObjectDoesNotExist, User.MultipleObjectsReturned):
             logger.warning('Login falhou (email nao cadastrado): email=%s ip=%s', email, ip)
             return render(request, 'login.html', {'error': credenciais_invalidas})
@@ -492,6 +499,91 @@ def login_view(request):
             return render(request, 'login.html', {'error': credenciais_invalidas})
         
     return render(request, 'login.html')
+
+
+def esqueci_senha(request):
+    if request.method == 'POST':
+        identificador = request.POST.get('usuario_ou_email', '').strip()
+
+        if identificador:
+            usuarios = User.objects.filter(
+                Q(username__iexact=identificador) | Q(email__iexact=identificador),
+                is_active=True,
+            ).distinct()
+
+            for usuario in usuarios:
+                if not usuario.email or not usuario.has_usable_password():
+                    continue
+
+                uid = urlsafe_base64_encode(force_bytes(usuario.pk))
+                token = default_token_generator.make_token(usuario)
+                reset_url = request.build_absolute_uri(
+                    reverse('redefinir_senha', kwargs={'uidb64': uid, 'token': token})
+                )
+                mensagem = render_to_string(
+                    'senha_redefinicao_email.txt',
+                    {
+                        'usuario': usuario,
+                        'reset_url': reset_url,
+                    },
+                )
+                send_mail(
+                    'Redefinicao de senha - Aponte Cafes',
+                    mensagem,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [usuario.email],
+                    fail_silently=True,
+                )
+
+        return redirect('senha_redefinicao_enviada')
+
+    return render(request, 'esqueci_senha.html')
+
+
+def senha_redefinicao_enviada(request):
+    return render(request, 'senha_redefinicao_enviada.html')
+
+
+def _get_user_from_uid(uidb64):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        return User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist, ValidationError):
+        return None
+
+
+def redefinir_senha(request, uidb64, token):
+    usuario = _get_user_from_uid(uidb64)
+    token_valido = usuario is not None and default_token_generator.check_token(usuario, token)
+
+    if not token_valido:
+        return render(request, 'senha_redefinicao_invalida.html', status=400)
+
+    if request.method == 'POST':
+        password = request.POST.get('password', '')
+        confirm_password = request.POST.get('confirm_password', '')
+
+        if password != confirm_password:
+            messages.error(request, 'As senhas nao correspondem.')
+            return render(request, 'redefinir_senha.html')
+
+        try:
+            validate_password(password, user=usuario)
+        except ValidationError as error:
+            for message in error.messages:
+                messages.error(request, message)
+            return render(request, 'redefinir_senha.html')
+
+        usuario.set_password(password)
+        usuario.save()
+        return redirect('senha_redefinida_sucesso')
+
+    return render(request, 'redefinir_senha.html')
+
+
+def senha_redefinida_sucesso(request):
+    return render(request, 'senha_redefinida_sucesso.html')
+
 
 def logout(request):
     auth_logout(request)
@@ -531,21 +623,39 @@ def perfil_cafeteria(request, cafe_id):
 
 def UserCadastro(request):
     if request.method == 'POST':
-        username = request.POST['username']
-        name = request.POST['name']
-        email = request.POST['email']
-        password = request.POST['password']
-        confirm_password = request.POST.get('confirm_password')
+        username = request.POST.get('username', '').strip()
+        name = request.POST.get('name', '').strip()
+        email = request.POST.get('email', '').strip().lower()
+        password = request.POST.get('password', '')
+        confirm_password = request.POST.get('confirm_password', '')
         is_business = request.POST.get('is_business') == 'on'
+        form_data = request.POST.copy()
+        form_data['username'] = username
+        form_data['name'] = name
+        form_data['email'] = email
 
         if password != confirm_password:
-                messages.error(request, 'As senhas não correspondem.')
-                return render(request, 'cadastro_usuario.html', {'form': request.POST})
+            messages.error(request, 'As senhas nao correspondem.')
+            return render(request, 'cadastro_usuario.html', {'form': form_data})
+
+        try:
+            validate_password(password)
+        except ValidationError as error:
+            for message in error.messages:
+                messages.error(request, message)
+            return render(request, 'cadastro_usuario.html', {'form': form_data})
         
         if User.objects.filter(username=username).exists():
-            return render(request, 'cadastro_usuario.html', {"erro": "Usuário já existe"})
-        if User.objects.filter(email=email).exists():
-            return render(request, 'cadastro_usuario.html', {"erro": "Email já cadastrado"})
+            messages.error(request, 'Usuario ja existe.')
+            return render(request, 'cadastro_usuario.html', {'form': form_data})
+
+        email_em_uso = (
+            User.objects.filter(email__iexact=email).exists()
+            or UserCliente.objects.filter(email__iexact=email).exists()
+        )
+        if email_em_uso:
+            messages.error(request, 'E-mail ja cadastrado.')
+            return render(request, 'cadastro_usuario.html', {'form': form_data})
 
         user = User.objects.create_user(username=username, password=password, email=email, first_name=name)
 

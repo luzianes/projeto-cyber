@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,31 +21,59 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR.parent / 'projeto.env')
 
+
+def env_bool(name, default='0'):
+    return os.getenv(name, default).lower() in ['true', 't', '1', 'yes', 'y']
+
+
+def env_required(name):
+    value = os.getenv(name)
+    if not value:
+        raise ImproperlyConfigured(f"{name} precisa ser definido em projeto.env.")
+    return value
+
+
+def postgres_database_config(require_ssl=False):
+    config = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DBNAME', 'aponte_cafes_dev'),
+        'HOST': os.getenv('DBHOST', 'localhost'),
+        'PORT': os.getenv('DBPORT', '5432'),
+        'USER': os.getenv('DBUSER', 'aponte_user'),
+        'PASSWORD': os.getenv('DBPASS', 'aponte_password'),
+    }
+
+    sslmode = os.getenv('DBSSLMODE', 'require' if require_ssl else 'disable')
+    if sslmode:
+        config['OPTIONS'] = {'sslmode': sslmode}
+
+    return config
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 TARGET_ENV = os.getenv('TARGET_ENV', 'dev')
 NOT_PROD = not TARGET_ENV.lower().startswith('prod')
+SECRET_KEY = env_required('SECRET_KEY')
+DEBUG = env_bool('DEBUG')
 
 if NOT_PROD:
-    # SECURITY WARNING: don't run with debug turned on in production!
-    DEBUG = True
-    # SECURITY WARNING: keep the secret key used in production secret!
-    SECRET_KEY = 'django-insecure-n&q&76@9^eg+lru2)z)^52@ntgz9p(0af)4t@p^xmvg(k&86%+'
-    ALLOWED_HOSTS = []
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split()
+    if env_bool('USE_POSTGRES'):
+        DATABASES = {'default': postgres_database_config(require_ssl=False)}
+    else:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
         }
-    }
     # Em dev não há HTTPS local, então o cookie de sessão fica sem a flag Secure.
     SESSION_COOKIE_SECURE = False
 else:
-    SECRET_KEY = os.getenv('SECRET_KEY')
-    DEBUG = os.getenv('DEBUG', '0').lower() in ['true', 't', '1']
-    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS').split(' ')
-    CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS').split(' ')
+    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split()
+    CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split()
 
     SECURE_SSL_REDIRECT = \
         os.getenv('SECURE_SSL_REDIRECT', '0').lower() in ['true', 't', '1']
@@ -58,16 +87,7 @@ else:
         SECURE_HSTS_INCLUDE_SUBDOMAINS = True
         SECURE_HSTS_PRELOAD = True
 
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('DBNAME'),
-            'HOST': os.environ.get('DBHOST'),
-            'USER': os.environ.get('DBUSER'),
-            'PASSWORD': os.environ.get('DBPASS'),
-            'OPTIONS': {'sslmode': 'require'},
-        }
-    }
+    DATABASES = {'default': postgres_database_config(require_ssl=True)}
     
 # Application definition
 
@@ -135,6 +155,21 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 8,
+        },
+    },
+    {
+        'NAME': 'apps.password_validators.UppercasePasswordValidator',
+    },
+    {
+        'NAME': 'apps.password_validators.LowercasePasswordValidator',
+    },
+    {
+        'NAME': 'apps.password_validators.NumberPasswordValidator',
+    },
+    {
+        'NAME': 'apps.password_validators.SpecialCharacterPasswordValidator',
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -212,7 +247,22 @@ LOGGING = {
 #No arquivo settings.py do seu projeto, adicione a configuração para o envio de emails.
 #Aqui está um exemplo usando o backend de email do console para fins de desenvolvimento (isso apenas imprimirá o email no console, 
 #ao invés de enviá-lo):
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = os.getenv(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.console.EmailBackend',
+)
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'localhost')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '25'))
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS')
+EMAIL_USE_SSL = env_bool('EMAIL_USE_SSL')
+EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '10'))
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'no-reply@apontecafes.local')
+SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
+
+if EMAIL_USE_TLS and EMAIL_USE_SSL:
+    raise ImproperlyConfigured('EMAIL_USE_TLS e EMAIL_USE_SSL nao podem estar ativos ao mesmo tempo.')
 #Para produção, você substituiria isso por configurações adequadas para um servidor SMTP real. #########################################
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

@@ -1,0 +1,7 @@
+Ola, {{ usuario.first_name|default:usuario.username }}.
+
+Caso tenha solicitado recuperacao de senha, siga o link abaixo:
+
+{{ reset_url }}
+
+Se voce nao solicitou essa recuperacao, ignore este email.

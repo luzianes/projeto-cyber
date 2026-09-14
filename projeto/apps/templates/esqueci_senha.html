@@ -1,0 +1,22 @@
+{% extends "global/base_sem_footer.html" %}
+{% block content %}
+{% load static %}
+
+<link rel="stylesheet" href="{% static '../static/css/style_login.css' %}">
+<section class="section">
+    <div class="container">
+        <h1>Redefinir senha</h1>
+        <form class="login" method="post">
+            {% csrf_token %}
+            <div class="box-user">
+                <label>Usuario ou email</label><br>
+                <input type="text" name="usuario_ou_email" required><br>
+            </div>
+            <button type="submit" class="btn-submit">Enviar link</button>
+            <div class="signup-message">
+                <a href="{% url 'login' %}" class="btn">Voltar para o login</a>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock content %}

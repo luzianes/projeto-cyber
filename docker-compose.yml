@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: projeto_cyber_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DBNAME:-aponte_cafes_dev}
+      POSTGRES_USER: ${DBUSER:-aponte_user}
+      POSTGRES_PASSWORD: ${DBPASS:-aponte_password}
+      TZ: America/Recife
+    ports:
+      - "${DBPORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:

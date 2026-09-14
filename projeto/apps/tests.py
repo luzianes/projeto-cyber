@@ -1,6 +1,8 @@
 from datetime import date, time, timedelta
+from urllib.parse import urlparse
 
 from django.contrib.auth.models import User
+from django.core import mail
 from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 
@@ -9,14 +11,19 @@ from .models import Cafe, UserCliente, ReservaCafe
 
 # Em teste, usa o storage de estáticos simples (o padrão de produção é o
 # ManifestStaticFilesStorage do WhiteNoise, que exigiria `collectstatic`).
-@override_settings(STORAGES={
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
+@override_settings(
+    ALLOWED_HOSTS=["testserver"],
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    DEFAULT_FROM_EMAIL="no-reply@apontecafes.local",
+    STORAGES={
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
     },
-    "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-    },
-})
+)
 class ControleAcessoTests(TestCase):
     """Testes de regressão dos controles de acesso (autorização/autenticação).
 
@@ -28,6 +35,7 @@ class ControleAcessoTests(TestCase):
 
     def setUp(self):
         self.client = Client()
+        mail.outbox = []
 
         # Dona da reserva
         self.alice = User.objects.create_user(
@@ -93,7 +101,99 @@ class ControleAcessoTests(TestCase):
             reverse('login'),
             {'email': 'alice@example.com', 'password': 'errada'})
         # Mesma mensagem genérica nos dois casos, sem revelar o que existe.
-        self.assertContains(r_email, 'inválidos')
-        self.assertContains(r_senha, 'inválidos')
+        self.assertContains(r_email, 'Usuario ou senha invalidos.')
+        self.assertContains(r_senha, 'Usuario ou senha invalidos.')
         self.assertNotContains(r_email, 'não encontrado')
         self.assertNotContains(r_email, 'Usuário')
+
+    # ---- Cadastro ----------------------------------------------------------
+    def test_cadastro_nao_permite_email_repetido(self):
+        resp = self.client.post(reverse('UserCadastro'), {
+            'username': 'novo_usuario',
+            'name': 'Novo Usuario',
+            'email': 'ALICE@example.com',
+            'password': 'Senha@123',
+            'confirm_password': 'Senha@123',
+        })
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'E-mail ja cadastrado.')
+        self.assertFalse(User.objects.filter(username='novo_usuario').exists())
+
+    def test_cadastro_exige_senha_com_regras_minimas(self):
+        casos = [
+            ('senha_curta', 'Ab1!xyz', '8'),
+            ('senha_sem_maiuscula', 'senha@123', 'letra maiuscula'),
+            ('senha_sem_minuscula', 'SENHA@123', 'letra minuscula'),
+            ('senha_sem_numero', 'Senha@abc', 'numero'),
+            ('senha_sem_especial', 'Senha123', 'caractere especial'),
+        ]
+
+        for username, password, expected_message in casos:
+            with self.subTest(username=username):
+                resp = self.client.post(reverse('UserCadastro'), {
+                    'username': username,
+                    'name': 'Usuario Teste',
+                    'email': f'{username}@example.com',
+                    'password': password,
+                    'confirm_password': password,
+                })
+
+                self.assertEqual(resp.status_code, 200)
+                self.assertContains(resp, expected_message)
+                self.assertFalse(User.objects.filter(username=username).exists())
+
+    # ---- Esqueci minha senha ----------------------------------------------
+    def test_esqueci_senha_tem_mesmo_comportamento_para_conta_existente_ou_nao(self):
+        resp_existente = self.client.post(
+            reverse('esqueci_senha'),
+            {'usuario_ou_email': 'alice@example.com'},
+        )
+        self.assertRedirects(resp_existente, reverse('senha_redefinicao_enviada'))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('Caso tenha solicitado recuperacao de senha', mail.outbox[0].body)
+
+        mail.outbox = []
+        resp_inexistente = self.client.post(
+            reverse('esqueci_senha'),
+            {'usuario_ou_email': 'naoexiste@example.com'},
+        )
+        self.assertRedirects(resp_inexistente, reverse('senha_redefinicao_enviada'))
+        self.assertEqual(len(mail.outbox), 0)
+
+        pagina = self.client.get(reverse('senha_redefinicao_enviada'))
+        self.assertContains(pagina, 'Se os dados informados corresponderem a uma conta')
+
+    def test_esqueci_senha_aceita_username(self):
+        resp = self.client.post(
+            reverse('esqueci_senha'),
+            {'usuario_ou_email': 'alice'},
+        )
+
+        self.assertRedirects(resp, reverse('senha_redefinicao_enviada'))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('alice@example.com', mail.outbox[0].to)
+
+    def test_link_de_redefinicao_altera_senha(self):
+        self.client.post(
+            reverse('esqueci_senha'),
+            {'usuario_ou_email': 'alice@example.com'},
+        )
+        reset_url = next(
+            line.strip()
+            for line in mail.outbox[0].body.splitlines()
+            if line.startswith('http')
+        )
+        reset_path = urlparse(reset_url).path
+
+        resp_get = self.client.get(reset_path)
+        self.assertEqual(resp_get.status_code, 200)
+
+        resp_post = self.client.post(reset_path, {
+            'password': 'NovaSenha@123',
+            'confirm_password': 'NovaSenha@123',
+        })
+        self.assertRedirects(resp_post, reverse('senha_redefinida_sucesso'))
+
+        self.alice.refresh_from_db()
+        self.assertTrue(self.alice.check_password('NovaSenha@123'))

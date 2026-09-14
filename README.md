@@ -23,6 +23,39 @@ Este é um trabalho para a disciplina de Projetos 2 - CESAR School 2024.1.
 - **Banco de dados** - SQLite/PostgreSQL - Para armazenar informações sobre as cafeterias e avaliações dos usuários
 - **Hospedagem** - Azure - O produto final será hospedado na plataforma Azure, garantindo confiabilidade e escalabilidade.
 
+## Banco local ficticio (PostgreSQL + Docker no WSL)
+
+O projeto tem um `docker-compose.yml` na raiz com um PostgreSQL local e um `projeto.env` de desenvolvimento ja configurado para usar esse banco.
+
+No WSL, a partir da raiz do repositorio:
+
+```bash
+docker compose --env-file projeto.env up -d db
+```
+
+Depois rode as migrations e carregue dados ficticios:
+
+```bash
+cd projeto
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python manage.py migrate
+.venv/bin/python manage.py seed_fake_data --reset
+.venv/bin/python manage.py runserver
+```
+
+Credenciais do banco local:
+
+```text
+host: localhost
+porta: 5432
+banco: aponte_cafes_dev
+usuario: aponte_user
+senha: aponte_password
+```
+
+Usuarios ficticios da aplicacao usam a senha `Aponte123!`. O usuario `maria_julia` tambem tem acesso ao Django Admin.
+
 ## SR1
 
 - As entregas e links relevantes do SR1 estão detalhadas no arquivo [SR1.md](https://github.com/MatheusVelame/projetos2g3/blob/main/SR1.md).
