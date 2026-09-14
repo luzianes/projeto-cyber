@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .models import *
 from .models import Cafe, Avaliacao, UserCliente, Favorito
 from datetime import datetime
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, Http404
 from django.core.mail import send_mail
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
@@ -16,10 +16,12 @@ from django.contrib.auth import logout as auth_logout
 from django.utils import timezone
 from django.db.models import Max
 import json
-from django.core.files.storage import FileSystemStorage
+import logging
 import random
 from django.http import JsonResponse
 from .ai_moderation import classify_review
+
+logger = logging.getLogger('security')
 
 def home(request):
     cafes = Cafe.objects.all()
@@ -59,7 +61,10 @@ def cadastro_cafeteria(request):
     print(f"Usuário é empresário: {is_empresario}")
 
     if not is_empresario:
-        print("Usuário não está no grupo 'Empresários'.")
+        logger.warning(
+            'Acesso negado: usuario=%s tentou cadastrar cafeteria sem ser empresario',
+            usuario.username,
+        )
         messages.error(request, 'Apenas empresários podem cadastrar cafeterias.')
         return redirect('acesso_negado_cadastrar_cafeteria')
 
@@ -230,7 +235,14 @@ def detalhes_anonimo(request, cafe_id):
 @login_required
 def editar_reserva(request, reserva_id):
     # Autorização em nível de objeto: só o dono da reserva pode editá-la.
-    reserva = get_object_or_404(ReservaCafe, id=reserva_id, cliente__email=request.user.email)
+    try:
+        reserva = get_object_or_404(ReservaCafe, id=reserva_id, cliente__email=request.user.email)
+    except Http404:
+        logger.warning(
+            'Acesso negado: usuario=%s tentou editar reserva_id=%s que nao lhe pertence',
+            request.user.username, reserva_id,
+        )
+        raise
     cafe = reserva.cafe
     
     if request.method == 'POST':
@@ -322,7 +334,14 @@ def enviar_email(request, cafe_id):
 @login_required
 def excluir_reserva(request, reserva_id):
     # Autorização em nível de objeto: só o dono da reserva pode excluí-la.
-    reserva = get_object_or_404(ReservaCafe, id=reserva_id, cliente__email=request.user.email)
+    try:
+        reserva = get_object_or_404(ReservaCafe, id=reserva_id, cliente__email=request.user.email)
+    except Http404:
+        logger.warning(
+            'Acesso negado: usuario=%s tentou excluir reserva_id=%s que nao lhe pertence',
+            request.user.username, reserva_id,
+        )
+        raise
     
     if request.method == 'POST':
         reserva.delete()
@@ -452,19 +471,24 @@ def login_view(request):
         # quais e-mails estão cadastrados (anti-enumeração de usuários).
         credenciais_invalidas = 'E-mail ou senha inválidos.'
 
+        ip = request.META.get('REMOTE_ADDR')
+
         try:
             username = User.objects.get(email=email).username
         except (ObjectDoesNotExist, User.MultipleObjectsReturned):
+            logger.warning('Login falhou (email nao cadastrado): email=%s ip=%s', email, ip)
             return render(request, 'login.html', {'error': credenciais_invalidas})
 
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
+            logger.info('Login bem-sucedido: usuario=%s ip=%s', user.username, ip)
             if user.groups.filter(name='Empresários').exists():
                 return redirect('cafeterias_empresarios')
             else:
                 return redirect('home')
         else:
+            logger.warning('Login falhou (senha incorreta): email=%s ip=%s', email, ip)
             return render(request, 'login.html', {'error': credenciais_invalidas})
         
     return render(request, 'login.html')
@@ -658,10 +682,11 @@ def editar_perfil(request):
         user_cliente.email = email
 
         if profile_image:
-            fs = FileSystemStorage()
-            filename = fs.save(profile_image.name, profile_image)
-            user_cliente.profile_image = filename
-            
+            # Atribui o arquivo enviado diretamente (em vez de salvar manualmente
+            # via FileSystemStorage) para que o ImageField use o upload_to correto
+            # e o hash SHA-256 de integridade seja calculado em UserCliente.save().
+            user_cliente.profile_image = profile_image
+
         user_cliente.save()
 
         return redirect('editar_perfil_sucesso')

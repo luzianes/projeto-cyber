@@ -5,6 +5,7 @@ from django.db.models import Avg
 from datetime import datetime
 
 from .crypto_fields import EncryptedCharField, EncryptedTextField
+from .integrity import calcular_sha256_arquivo
 
 class UserCliente(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
@@ -14,6 +15,13 @@ class UserCliente(models.Model):
     confirm_password = models.CharField(max_length=255, null=True)
     is_business = models.BooleanField(default=False)
     profile_image = models.ImageField(upload_to='profile_image/', blank=True, null=True)
+    # SHA-256 do profile_image calculado no upload, para verificar depois se o arquivo em disco foi adulterado.
+    profile_image_sha256 = models.CharField(max_length=64, blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.profile_image and not self.profile_image._committed:
+            self.profile_image_sha256 = calcular_sha256_arquivo(self.profile_image.file)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.email
@@ -28,9 +36,16 @@ class Cafe(models.Model):
     horas_funcionamento = models.CharField(max_length=100, blank=False, default='Horário não informado')
     link_redesocial = models.URLField(max_length=200, blank=True)
     foto_ambiente = models.ImageField(upload_to='fotos_cafeterias/', blank=True, null=True)
+    # SHA-256 do foto_ambiente calculado no upload, para verificar depois se o arquivo em disco foi adulterado.
+    foto_ambiente_sha256 = models.CharField(max_length=64, blank=True, null=True)
     cnpj = models.CharField(max_length=14, unique=True, default='00000000000000')
     site_cafeteria = models.URLField(max_length=200, blank=True)
     empresario = models.ForeignKey(UserCliente, on_delete=models.CASCADE, related_name='cafeterias', null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if self.foto_ambiente and not self.foto_ambiente._committed:
+            self.foto_ambiente_sha256 = calcular_sha256_arquivo(self.foto_ambiente.file)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.nome_cafeteria
@@ -175,8 +190,15 @@ class Avaliacao(models.Model):
     valor_gasto = models.CharField(max_length=50, blank=True, null=True)
     data_avaliacao = models.DateTimeField(auto_now_add=True)
     foto_avaliacao= models.ImageField(upload_to='fotos_experiencias/', blank=True, null=True)
+    # SHA-256 do foto_avaliacao calculado no upload, para verificar depois se o arquivo em disco foi adulterado.
+    foto_avaliacao_sha256 = models.CharField(max_length=64, blank=True, null=True)
     classificacao_ia = models.CharField(max_length=10, choices=STATUS_MODERACAO, default='pendente')
     justificativa_ia = models.TextField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.foto_avaliacao and not self.foto_avaliacao._committed:
+            self.foto_avaliacao_sha256 = calcular_sha256_arquivo(self.foto_avaliacao.file)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Avaliação de {self.cliente.nome_completo} para {self.cafe.nome_cafeteria}"
