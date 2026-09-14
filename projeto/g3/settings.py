@@ -38,6 +38,8 @@ if NOT_PROD:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+    # Em dev não há HTTPS local, então o cookie de sessão fica sem a flag Secure.
+    SESSION_COOKIE_SECURE = False
 else:
     SECRET_KEY = os.getenv('SECRET_KEY')
     DEBUG = os.getenv('DEBUG', '0').lower() in ['true', 't', '1']
@@ -47,8 +49,19 @@ else:
     SECURE_SSL_REDIRECT = \
         os.getenv('SECURE_SSL_REDIRECT', '0').lower() in ['true', 't', '1']
 
+    # Cookie de sessão só viaja em HTTPS quando o próprio ambiente serve em
+    # HTTPS (mesma condição usada pelo redirect acima).
+    SESSION_COOKIE_SECURE = SECURE_SSL_REDIRECT
+    CSRF_COOKIE_SECURE = SECURE_SSL_REDIRECT
+
     if SECURE_SSL_REDIRECT:
         SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+        # HSTS: instrui o navegador a nunca mais tentar HTTP neste domínio
+        # pelo tempo configurado, mitigando downgrade attacks.
+        SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '31536000'))
+        SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+        SECURE_HSTS_PRELOAD = True
 
     DATABASES = {
         'default': {
@@ -93,7 +106,6 @@ LOGOUT_REDIRECT_URL = 'home'
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_COOKIE_AGE = 3600
-SESSION_COOKIE_SECURE = False
 SESSION_COOKIE_HTTPONLY = True
 
 TEMPLATES = [

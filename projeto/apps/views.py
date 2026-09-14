@@ -486,6 +486,21 @@ def minhas_reservas(request):
     reservas = ReservaCafe.objects.filter(cliente=cliente)
     return render(request, 'minhas_reservas.html', {'reservas': reservas})
 
+def api_cafeterias(request):
+    cafes = Cafe.objects.all().values(
+        'id', 'nome_cafeteria', 'endereco', 'descricao', 'horas_funcionamento'
+    )
+    return JsonResponse({'cafeterias': list(cafes)})
+
+@login_required
+def api_minhas_reservas(request):
+    # Mesmo filtro por dono usado em editar_reserva/excluir_reserva: cada
+    # usuário só enxerga as próprias reservas, nunca as de terceiros.
+    reservas = ReservaCafe.objects.filter(cliente__email=request.user.email).values(
+        'id', 'cafe__nome_cafeteria', 'data_reserva', 'horario_reserva', 'numero_de_pessoas'
+    )
+    return JsonResponse({'reservas': list(reservas)})
+
 def perfil_cafeteria(request, cafe_id):
     cafeteria = get_object_or_404(Cafe, pk=cafe_id)
     return render(request, 'perfil_cafeteria.html', {'cafeteria': cafeteria})
