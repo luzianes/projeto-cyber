@@ -1,7 +1,6 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: projeto_cyber_postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DBNAME:-aponte_cafes_dev}
@@ -9,14 +8,34 @@ services:
       POSTGRES_PASSWORD: ${DBPASS:-aponte_password}
       TZ: America/Recife
     ports:
-      - "${DBPORT:-5432}:5432"
+      - "127.0.0.1:${DBPORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 10s
+
+  db-init:
+    build: .
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      TARGET_ENV: dev
+      USE_POSTGRES: "1"
+      DBHOST: db
+      DBPORT: "5432"
+      DBNAME: ${DBNAME:-aponte_cafes_dev}
+      DBUSER: ${DBUSER:-aponte_user}
+      DBPASS: ${DBPASS:-aponte_password}
+      DBSSLMODE: disable
+      DB_EXTERNAL_PORT: ${DBPORT:-5432}
+    volumes:
+      - .:/workspace
 
 volumes:
   postgres_data:

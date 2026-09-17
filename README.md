@@ -48,27 +48,97 @@ projeto (fora deste repositório).
 
 ## Como rodar localmente
 
-1. Copie `projeto.env.example` para `projeto.env` (raiz do repositório) e preencha os valores (veja os comentários no próprio arquivo). No mínimo, gere um `SECRET_KEY` novo; para usar a
-   moderação por IA, gere uma `GEMINI_API_KEY` gratuita em
-   [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+### Banco pronto com Docker Compose
 
-2. Suba o Postgres local via Docker (a partir da raiz do repositório):
+Com o Docker instalado e em execução, rode na raiz do repositório:
 
-   ```bash
-   docker compose --env-file projeto.env up -d db
-   ```
+```bash
+docker compose up
+```
 
-3. Instale as dependências e rode as migrations:
+O Compose inicia o PostgreSQL, aguarda o banco aceitar conexões e executa o serviço
+`db-init`, que aplica as migrations e carrega os dados fictícios **somente se o banco
+estiver vazio**. Ao aparecer `Banco pronto para uso.`, o banco está preparado.
+É normal que `db-init` termine com código `0`; o PostgreSQL continua em execução.
+Na primeira vez, as imagens e dependências serão baixadas; não é necessário instalar
+Python no computador para preparar o banco.
 
-   ```bash
-   cd projeto
-   python -m venv .venv
-   .venv/Scripts/python -m pip install -r requirements.txt   # Windows
-   # .venv/bin/python -m pip install -r requirements.txt     # Linux/WSL/macOS
-   .venv/Scripts/python manage.py migrate
-   .venv/Scripts/python manage.py seed_fake_data --reset      # dados fictícios
-   .venv/Scripts/python manage.py runserver
-   ```
+O arquivo `projeto.env` é criado automaticamente quando não existe. As chaves
+`SECRET_KEY` e `FIELD_ENCRYPTION_KEY` são geradas localmente quando faltam; as chaves
+existentes são preservadas. Guarde esse arquivo: a chave de criptografia é necessária
+para ler as reservas. Ele permanece fora do Git.
+
+Para executar em segundo plano e acompanhar a preparação:
+
+```bash
+docker compose up -d
+docker compose logs -f db-init
+```
+
+| Conexão local | Valor padrão |
+|---|---|
+| Host | `localhost` |
+| Porta | `5432` |
+| Banco | `aponte_cafes_dev` |
+| Usuário | `aponte_user` |
+| Senha | `aponte_password` |
+
+Os usuários fictícios usam a senha `Aponte123!`. O usuário `maria_julia` tem acesso
+ao Django Admin. Essas credenciais são para desenvolvimento local.
+
+Para parar os serviços mantendo os dados:
+
+```bash
+docker compose down
+```
+
+Os dados ficam no volume `postgres_data` e são preservados nas próximas inicializações.
+`docker compose down -v` também apaga esse volume e todos os dados do banco.
+Para aplicar mudanças nas dependências Python, use `docker compose up --build`.
+
+As variáveis `DBNAME`, `DBUSER`, `DBPASS` e `DBPORT` podem ser personalizadas em um
+arquivo `.env` na raiz, lido pelo Compose e pelo Django. Por exemplo, `DBPORT=5433`
+libera a porta `5432` para outro banco instalado na máquina. Se já personalizou essas
+variáveis em `projeto.env`, use `docker compose --env-file projeto.env up`.
+As credenciais do PostgreSQL só são criadas quando o volume está vazio; mudar o arquivo
+não altera usuários ou senhas de um banco existente.
+
+### Aplicação Django
+
+Depois da preparação do banco, instale as dependências e inicie a aplicação:
+
+```bash
+cd projeto
+python -m venv .venv
+# Linux/WSL/macOS
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python manage.py runserver
+```
+
+No Windows, use `.venv/Scripts/python` no lugar de `.venv/bin/python`.
+Acesse `http://127.0.0.1:8000`. Para habilitar a moderação por IA, preencha
+`GEMINI_API_KEY` em `projeto.env` com uma chave do
+[Google AI Studio](https://aistudio.google.com/apikey).
+O arquivo `projeto.env.example` documenta as demais configurações opcionais.
+
+### Erro de conexão com o Docker no WSL
+
+Se aparecer `Cannot connect to the Docker daemon`, verifique o serviço.
+Para Docker Engine instalado diretamente no Ubuntu/WSL:
+
+```bash
+sudo systemctl start docker
+docker info
+```
+
+Se o serviço falhar, consulte a causa antes de alterar sua configuração:
+
+```bash
+sudo journalctl -u docker.service -n 100 --no-pager
+```
+
+Para quem usa Docker Desktop, abra o aplicativo no Windows e habilite a integração
+com a distribuição em **Settings → Resources → WSL Integration**.
 
 ## Equipe
 

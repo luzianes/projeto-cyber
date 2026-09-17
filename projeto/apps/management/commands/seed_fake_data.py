@@ -443,14 +443,27 @@ class Command(BaseCommand):
     help = "Popula o banco local com dados ficticios para desenvolvimento."
 
     def add_arguments(self, parser):
-        parser.add_argument(
+        mode = parser.add_mutually_exclusive_group()
+        mode.add_argument(
             "--reset",
             action="store_true",
             help="Remove os dados ficticios antes de recria-los.",
         )
+        mode.add_argument(
+            "--if-empty",
+            action="store_true",
+            help="Carrega dados apenas quando nao existem usuarios ou dados da aplicacao.",
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
+        if options["if_empty"] and any(
+            model.objects.exists()
+            for model in (User, UserCliente, Cafe, Avaliacao, Favorito, Historico, ReservaCafe)
+        ):
+            self.stdout.write("Banco ja possui dados; carga ficticia ignorada.")
+            return
+
         if not getattr(settings, "FIELD_ENCRYPTION_KEY", ""):
             raise CommandError(
                 "FIELD_ENCRYPTION_KEY nao configurada. Defina a chave em projeto.env antes de criar reservas."
