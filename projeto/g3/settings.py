@@ -57,19 +57,42 @@ def postgres_database_config(require_ssl=False):
 
 TARGET_ENV = os.getenv('TARGET_ENV', 'dev')
 NOT_PROD = not TARGET_ENV.lower().startswith('prod')
+
 SECRET_KEY = env_required('SECRET_KEY')
 DEBUG = env_bool('DEBUG')
-ALLOWED_HOSTS = ["*"]
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://projeto-cyber.onrender.com",
-]
+
+def env_list(name, default=''):
+    value = os.getenv(name, default)
+
+    return [
+        item.strip()
+        for item in value.replace(',', ' ').split()
+        if item.strip()
+    ]
+
+
+ALLOWED_HOSTS = env_list(
+    'ALLOWED_HOSTS',
+    'localhost 127.0.0.1'
+)
+
+CSRF_TRUSTED_ORIGINS = env_list(
+    'CSRF_TRUSTED_ORIGINS',
+    'https://projeto-cyber.onrender.com'
+)
+
+render_hostname = os.getenv('RENDER_EXTERNAL_HOSTNAME')
+
+if render_hostname and render_hostname not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(render_hostname)
 
 
 if NOT_PROD:
-    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split()
     if env_bool('USE_POSTGRES'):
-        DATABASES = {'default': postgres_database_config(require_ssl=False)}
+        DATABASES = {
+            'default': postgres_database_config(require_ssl=False)
+        }
     else:
         DATABASES = {
             'default': {
@@ -77,25 +100,34 @@ if NOT_PROD:
                 'NAME': BASE_DIR / 'db.sqlite3',
             }
         }
-    # Em dev não há HTTPS local, então o cookie de sessão fica sem a flag Secure.
-    SESSION_COOKIE_SECURE = False
-else:
-    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split()
-    CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split()
 
-    SECURE_SSL_REDIRECT = \
-        os.getenv('SECURE_SSL_REDIRECT', '0').lower() in ['true', 't', '1']
+    SESSION_COOKIE_SECURE = False
+
+else:
+    SECURE_SSL_REDIRECT = (
+        os.getenv('SECURE_SSL_REDIRECT', '0').lower()
+        in ['true', 't', '1']
+    )
 
     SESSION_COOKIE_SECURE = SECURE_SSL_REDIRECT
     CSRF_COOKIE_SECURE = SECURE_SSL_REDIRECT
 
     if SECURE_SSL_REDIRECT:
-        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-        SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '31536000'))
+        SECURE_PROXY_SSL_HEADER = (
+            'HTTP_X_FORWARDED_PROTO',
+            'https'
+        )
+
+        SECURE_HSTS_SECONDS = int(
+            os.getenv('SECURE_HSTS_SECONDS', '31536000')
+        )
+
         SECURE_HSTS_INCLUDE_SUBDOMAINS = True
         SECURE_HSTS_PRELOAD = True
 
-    DATABASES = {'default': postgres_database_config(require_ssl=True)}
+    DATABASES = {
+        'default': postgres_database_config(require_ssl=True)
+    }
     
 DATABASES["default"] = dj_database_url.parse("postgresql://apontecafe_postgresql_user:YDVd8Q9uOBKPi0ttd4dyW7WYfbNyo5fZ@dpg-dam45a65vjqs73bmass0-a.ohio-postgres.render.com/apontecafe_postgresql")
     
