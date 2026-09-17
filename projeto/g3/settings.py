@@ -37,11 +37,11 @@ def env_required(name):
 def postgres_database_config(require_ssl=False):
     config = {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DBNAME', 'aponte_cafes_dev'),
-        'HOST': os.getenv('DBHOST', 'localhost'),
-        'PORT': os.getenv('DBPORT', '5432'),
-        'USER': os.getenv('DBUSER', 'aponte_user'),
-        'PASSWORD': os.getenv('DBPASS', 'aponte_password'),
+        'NAME': env_required('DBNAME'),
+        'HOST': env_required('DBHOST'),
+        'PORT': env_required('DBPORT'),
+        'USER': env_required('DBUSER'),
+        'PASSWORD': env_required('DBPASS'),
     }
 
     sslmode = os.getenv('DBSSLMODE', 'require' if require_ssl else 'disable')
