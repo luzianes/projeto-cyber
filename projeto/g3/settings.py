@@ -59,7 +59,7 @@ TARGET_ENV = os.getenv('TARGET_ENV', 'dev')
 NOT_PROD = not TARGET_ENV.lower().startswith('prod')
 SECRET_KEY = env_required('SECRET_KEY')
 DEBUG = env_bool('DEBUG')
-ALLOWED_HOSTS = [*]
+ALLOWED_HOSTS = ["*"]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://projeto-cyber.onrender.com",
