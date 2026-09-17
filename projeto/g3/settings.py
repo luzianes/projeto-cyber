@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 import os
+import dj_database_url
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
 
@@ -59,6 +60,7 @@ NOT_PROD = not TARGET_ENV.lower().startswith('prod')
 SECRET_KEY = env_required('SECRET_KEY')
 DEBUG = env_bool('DEBUG')
 
+
 if NOT_PROD:
     ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split()
     if env_bool('USE_POSTGRES'):
@@ -89,6 +91,8 @@ else:
         SECURE_HSTS_PRELOAD = True
 
     DATABASES = {'default': postgres_database_config(require_ssl=True)}
+    
+DATABASES["default"] = dj_database_url.parse("postgresql://apontecafe_postgresql_user:YDVd8Q9uOBKPi0ttd4dyW7WYfbNyo5fZ@dpg-dam45a65vjqs73bmass0-a.ohio-postgres.render.com/apontecafe_postgresql")
     
 # Application definition
 
