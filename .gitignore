@@ -144,3 +144,8 @@ GitHub.sublime-settings
 
 # Cypress
 node_modules/
+
+.venv-deploy/
+projeto.env.deploy
+.vercel/
+.env.local
