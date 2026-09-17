@@ -69,6 +69,9 @@ def main():
     django.setup()
     call_command("migrate", interactive=False)
     call_command("seed_fake_data", if_empty=True)
+    # Gera projeto/staticfiles/ (nao versionado) a partir do zero em qualquer
+    # maquina/deploy novo, evitando o 500 "Missing staticfiles manifest entry".
+    call_command("collectstatic", interactive=False, verbosity=0)
     print("Banco pronto para uso.")
 
 

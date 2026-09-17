@@ -19,7 +19,13 @@
                     {% if cafe.foto_ambiente %}
                     <img class="img-cafe" src="{{ cafe.foto_ambiente.url }}" alt="{{ cafe.nome_cafeteria }}">
                     {% else %}
-                    <img src="{% static 'images/default-cafe.jpg' %}" alt="Default Image">
+                    <svg class="img-cafe bd-placeholder-img" xmlns="http://www.w3.org/2000/svg" role="img"
+                        aria-label="Placeholder: Thumbnail" preserveAspectRatio="xMidYMid slice" focusable="false"
+                        viewBox="0 0 500 300">
+                        <title>Placeholder</title>
+                        <rect width="500" height="300" fill="#55595c"></rect>
+                        <text x="40%" y="50%" fill="#eceeef" dy=".3em">{{ cafe.nome_cafeteria }}</text>
+                    </svg>
                     {% endif %}
                 </div>
                 <div class="cafe-details">

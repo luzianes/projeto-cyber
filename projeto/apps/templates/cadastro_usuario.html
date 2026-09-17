@@ -3,6 +3,7 @@
 {% load static %}
 
 <link rel="stylesheet" href="{% static 'css/cadastro_user.css' %}">
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
 <section class="section">
     <div class="container">
@@ -32,6 +33,7 @@
                 <label for="is_business">Cadastrar como proprietário:</label><br>
                 <input type="checkbox" id="is_business" name="is_business" {% if form.is_business %}checked{% endif %}><br>
             </div>
+            <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_SITE_KEY }}"></div>
             <button type="submit" class="criar-conta">Criar conta</button>
         </form>
     </div>

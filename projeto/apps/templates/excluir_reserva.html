@@ -1,5 +1,68 @@
 {% extends "global/base.html" %}
 {% block content %}
+<style>
+    .section {
+        display: flex;
+        justify-content: center;
+        padding: 60px 20px;
+    }
+
+    .container {
+        background: #F9F9F9;
+        border-radius: 12px;
+        padding: 32px 40px;
+        max-width: 480px;
+        width: 100%;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        text-align: center;
+    }
+
+    .container h1 {
+        color: #902C00;
+        font-size: 1.5rem;
+        margin-bottom: 16px;
+    }
+
+    .container p {
+        color: #1D1D1B;
+        margin-bottom: 24px;
+    }
+
+    .container form {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 10px 24px;
+        border-radius: 8px;
+        border: none;
+        font-weight: bold;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .btn-danger {
+        background: #902C00;
+        color: #FFFFFF;
+    }
+
+    .btn-danger:hover {
+        background: #711F00;
+    }
+
+    .btn-secondary {
+        background: #E5E5E5;
+        color: #1D1D1B;
+    }
+
+    .btn-secondary:hover {
+        background: #D5D5D5;
+    }
+</style>
 <section class="section">
     <div class="container">
         <h1>Excluir Reserva</h1>

@@ -136,6 +136,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'apps.context_processors.recaptcha',
             ],
         },
     },
@@ -206,6 +207,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Chave da API do Gemini usada na moderação/classificação de avaliações por IA.
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+
+# Google reCAPTCHA v2 (login e cadastro), contra automação/força bruta.
+# Os defaults sao as chaves de teste publicas do Google (sempre aprovam,
+# validas so em localhost) - troque por chaves reais de
+# https://www.google.com/recaptcha/admin antes de ir pra producao.
+RECAPTCHA_SITE_KEY = os.getenv('RECAPTCHA_SITE_KEY', '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI')
+RECAPTCHA_SECRET_KEY = os.getenv('RECAPTCHA_SECRET_KEY', '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe')
 
 # Chave da criptografia SIMÉTRICA (Fernet/AES) usada para cifrar em repouso os
 # dados pessoais das reservas (ver apps/crypto_fields.py). A chave vive FORA do

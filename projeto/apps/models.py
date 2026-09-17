@@ -6,6 +6,8 @@ from datetime import datetime
 
 from .crypto_fields import EncryptedCharField, EncryptedTextField
 from .integrity import calcular_sha256_arquivo
+from .validators import validar_conteudo_imagem
+from .upload_paths import upload_profile_image, upload_foto_ambiente, upload_foto_avaliacao
 
 class UserCliente(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
@@ -14,7 +16,7 @@ class UserCliente(models.Model):
     password = models.CharField(max_length=255, null=True)
     confirm_password = models.CharField(max_length=255, null=True)
     is_business = models.BooleanField(default=False)
-    profile_image = models.ImageField(upload_to='profile_image/', blank=True, null=True)
+    profile_image = models.ImageField(upload_to=upload_profile_image, blank=True, null=True, validators=[validar_conteudo_imagem])
     # SHA-256 do profile_image calculado no upload, para verificar depois se o arquivo em disco foi adulterado.
     profile_image_sha256 = models.CharField(max_length=64, blank=True, null=True)
 
@@ -35,7 +37,7 @@ class Cafe(models.Model):
     whatsapp = models.CharField(max_length=13, default='5500000000000')
     horas_funcionamento = models.CharField(max_length=100, blank=False, default='Horário não informado')
     link_redesocial = models.URLField(max_length=200, blank=True)
-    foto_ambiente = models.ImageField(upload_to='fotos_cafeterias/', blank=True, null=True)
+    foto_ambiente = models.ImageField(upload_to=upload_foto_ambiente, blank=True, null=True, validators=[validar_conteudo_imagem])
     # SHA-256 do foto_ambiente calculado no upload, para verificar depois se o arquivo em disco foi adulterado.
     foto_ambiente_sha256 = models.CharField(max_length=64, blank=True, null=True)
     cnpj = models.CharField(max_length=14, unique=True, default='00000000000000')
@@ -189,7 +191,7 @@ class Avaliacao(models.Model):
     comentario = models.TextField(blank=True, null=True)
     valor_gasto = models.CharField(max_length=50, blank=True, null=True)
     data_avaliacao = models.DateTimeField(auto_now_add=True)
-    foto_avaliacao= models.ImageField(upload_to='fotos_experiencias/', blank=True, null=True)
+    foto_avaliacao= models.ImageField(upload_to=upload_foto_avaliacao, blank=True, null=True, validators=[validar_conteudo_imagem])
     # SHA-256 do foto_avaliacao calculado no upload, para verificar depois se o arquivo em disco foi adulterado.
     foto_avaliacao_sha256 = models.CharField(max_length=64, blank=True, null=True)
     classificacao_ia = models.CharField(max_length=10, choices=STATUS_MODERACAO, default='pendente')

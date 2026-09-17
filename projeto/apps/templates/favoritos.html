@@ -173,7 +173,7 @@
             <div class="card-body">
                 <div class="right btn-group">
                     <a href="{% url 'favoritar' favorito.cafe.id %}" class="btn-outline-secondary"><img
-                            style="height: 20px;" src="{% static '../static/images/desfavoritar.png' %}"></a>
+                            style="height: 20px;" src="{% static 'images/desfavoritar.png' %}"></a>
                 </div>
                 <h5 class="card-title">{{favorito.cafe.nome_cafeteria }}</h5>
                 <p class="card-text">{{ favorito.cafe.get_short_description}}</p>

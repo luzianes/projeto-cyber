@@ -145,10 +145,7 @@
                                     {% csrf_token %}
                                     <button type="submit" class="rounded-button">Avaliar</button> 
                                 </form>
-                                <form action="{% url 'excluir_reserva' reserva.id %}" method="post" class="d-inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="rounded-button">Excluir</button>
-                                </form>
+                                <a href="{% url 'excluir_reserva' reserva.id %}" class="rounded-button">Excluir</a>
                             </div>
                             {% else %}
                             <div class="d-flex justify-content-between align-items-center" style="display: flex; justify-content: space-between; align-items: center;">
@@ -156,10 +153,7 @@
                                             {% csrf_token %}
                                             <button type="submit" class="rounded-button">Editar</button>
                                         </form>
-                                        <form action="{% url 'excluir_reserva' reserva.id %}" method="post" class="d-inline">
-                                            {% csrf_token %}
-                                            <button type="submit" class="rounded-button">Excluir</button>
-                                        </form>
+                                        <a href="{% url 'excluir_reserva' reserva.id %}" class="rounded-button">Excluir</a>
                             </div>
                             {% endif %}
                         </div>

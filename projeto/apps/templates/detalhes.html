@@ -455,7 +455,7 @@
                 <a href="{% url 'favoritar' cafe.id %}"
                     style="display: flex; align-items: center; text-decoration: none; color: black;">
                     <img style="height: 20px; margin-right: 5px;"
-                        src="{% static '../static/images/desfavoritar.png' %}">
+                        src="{% static 'images/desfavoritar.png' %}">
                     Desfavoritar
                 </a>
             </button>
@@ -463,7 +463,7 @@
             <button class="btn">
                 <a href="{% url 'favoritar' cafe.id %}"
                     style="display: flex; align-items: center; text-decoration: none; color: black;">
-                    <img style="height: 20px; margin-right: 5px;" src="{% static '../static/images/favoritar.png' %}">
+                    <img style="height: 20px; margin-right: 5px;" src="{% static 'images/favoritar.png' %}">
                     Favoritar
                 </a>
             </button>
@@ -473,7 +473,7 @@
             <button class="btn">
                 <a href="{% url 'login' %}"
                     style="display: flex; align-items: center; text-decoration: none; color: black;">
-                    <img style="height: 20px; margin-right: 5px;" src="{% static '../static/images/favoritar.png' %}">
+                    <img style="height: 20px; margin-right: 5px;" src="{% static 'images/favoritar.png' %}">
                     Favoritar
                 </a>
             </button>
@@ -627,7 +627,13 @@
         {% if sugerida.foto_ambiente %}
         <img src="{{ sugerida.foto_ambiente.url }}" alt="{{ sugerida.nome }}" class="sugestao-img">
         {% else %}
-        <img src="{% static 'path/to/default/image.jpg' %}" alt="{{ sugerida.nome }}" class="sugestao-img">
+        <svg class="sugestao-img bd-placeholder-img" xmlns="http://www.w3.org/2000/svg" role="img"
+            aria-label="Placeholder: Thumbnail" preserveAspectRatio="xMidYMid slice" focusable="false"
+            viewBox="0 0 500 200">
+            <title>Placeholder</title>
+            <rect width="500" height="200" fill="#55595c"></rect>
+            <text x="40%" y="50%" fill="#eceeef" dy=".3em">{{ sugerida.nome_cafeteria }}</text>
+        </svg>
         {% endif %}
         <div class="sugestao-info">
             <h3>{{ sugerida.nome_cafeteria }}</h3>

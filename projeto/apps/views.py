@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import *
 from .models import Cafe, Avaliacao, UserCliente, Favorito
+from .captcha import recaptcha_valido
 from datetime import datetime
 from django.conf import settings
 from django.http import HttpResponseRedirect, Http404
@@ -60,12 +61,7 @@ def cadastro_cafeteria(request):
     usuario = request.user
     email = usuario.email
 
-    print(f"Conteúdo da sessão: {request.session.items()}")
-    print(f"Usuário logado: {usuario.username}, ID: {usuario.id}")
-    print(f"Grupos do usuário: {[group.name for group in usuario.groups.all()]}")
-
     is_empresario = usuario.groups.filter(name='Empresários').exists()
-    print(f"Usuário é empresário: {is_empresario}")
 
     if not is_empresario:
         logger.warning(
@@ -77,13 +73,9 @@ def cadastro_cafeteria(request):
 
     try:
         user_cliente = UserCliente.objects.get(user=usuario)
-        print(f"UserCliente encontrado: {user_cliente}")
     except UserCliente.DoesNotExist:
-        print("UserCliente não encontrado.")
         messages.error(request, 'Perfil de usuário não encontrado. Complete seu cadastro.')
         return redirect('cadastro_usuario')
-
-    print(f"user_cliente.is_business: {user_cliente.is_business}")
 
     if request.method == 'POST':
         responsavel = request.POST.get('responsavel')
@@ -125,7 +117,11 @@ def cadastro_cafeteria(request):
         if 'foto_ambiente' in request.FILES:
             cafe.foto_ambiente = request.FILES['foto_ambiente']
 
-        cafe.full_clean()
+        try:
+            cafe.full_clean()
+        except ValidationError as e:
+            return render(request, 'cadastro_cafeteria.html', {'erro': ' '.join(e.messages)})
+
         cafe.save()
         return redirect('cadastro_cafeteria_sucesso')
 
@@ -237,7 +233,13 @@ def detalhes_anonimo(request, cafe_id):
         random.shuffle(outras_cafeterias)
         outras_cafeterias = outras_cafeterias[:4]
 
-        return render(request, 'detalhes.html', {'cafe': cafe, 'detalhes_cafe': detalhes_cafe, 'outras_cafeterias': outras_cafeterias})
+        return render(request, 'detalhes.html', {
+            'cafe': cafe,
+            'detalhes_cafe': detalhes_cafe,
+            'outras_cafeterias': outras_cafeterias,
+            'media_avaliacoes': cafe.media_avaliacoes(),
+            'media_valor_gasto': cafe.media_valor_gasto(),
+        })
 
 @login_required
 def editar_reserva(request, reserva_id):
@@ -473,12 +475,16 @@ def login_view(request):
     if request.method == 'POST':
         email = request.POST.get('email', '').strip()
         password = request.POST.get('password', '')
-        
+
         # Mensagem única para e-mail inexistente E senha errada: não revela
         # quais e-mails estão cadastrados (anti-enumeração de usuários).
         credenciais_invalidas = LOGIN_ERROR_MESSAGE
 
         ip = request.META.get('REMOTE_ADDR')
+
+        if not recaptcha_valido(request):
+            logger.warning('Login bloqueado (reCAPTCHA invalido): email=%s ip=%s', email, ip)
+            return render(request, 'login.html', {'error': 'Verificação de CAPTCHA falhou. Tente novamente.'})
 
         try:
             username = User.objects.get(email__iexact=email).username
@@ -634,6 +640,10 @@ def UserCadastro(request):
         form_data['name'] = name
         form_data['email'] = email
 
+        if not recaptcha_valido(request):
+            messages.error(request, 'Verificação de CAPTCHA falhou. Tente novamente.')
+            return render(request, 'cadastro_usuario.html', {'form': form_data})
+
         if password != confirm_password:
             messages.error(request, 'As senhas nao correspondem.')
             return render(request, 'cadastro_usuario.html', {'form': form_data})
@@ -668,8 +678,6 @@ def UserCadastro(request):
 
         login(request, user)
         request.session["usuario"] = email
-
-        print(f"Usuário {username} criado com is_business={is_business}")
 
         if is_business:
             return redirect('cadastro_empresario_sucesso') 
@@ -717,7 +725,7 @@ def avaliar_cafe(request, cafe_id):
 
         resultado_ia = classify_review(comentario, cliente_email=cliente.email)
 
-        Avaliacao.objects.create(
+        nova_avaliacao = Avaliacao(
             cafe=cafe,
             cliente=cliente,
             avaliacao=int(avaliacao),
@@ -727,6 +735,12 @@ def avaliar_cafe(request, cafe_id):
             classificacao_ia=resultado_ia.status,
             justificativa_ia=resultado_ia.raw_response,
         )
+        try:
+            nova_avaliacao.full_clean()
+        except ValidationError as e:
+            messages.error(request, ' '.join(e.messages))
+            return render(request, 'avaliar_cafe.html', {'cafe': cafe, 'range': range(1, 6)})
+        nova_avaliacao.save()
 
         if resultado_ia.status == 'rejeitado':
             messages.warning(
@@ -752,7 +766,6 @@ def avaliacao_sucesso(request):
 @login_required
 def perfil_usuario(request):
     user_cliente = UserCliente.objects.get(user=request.user)
-    print(f"Tipo de Usuário: {user_cliente.is_business}")
     context = {
         'user_cliente': user_cliente
     }
@@ -796,6 +809,16 @@ def editar_perfil(request):
             # via FileSystemStorage) para que o ImageField use o upload_to correto
             # e o hash SHA-256 de integridade seja calculado em UserCliente.save().
             user_cliente.profile_image = profile_image
+
+        try:
+            # password/confirm_password sao campos legados sempre nulos aqui;
+            # excluidos para nao quebrar a validacao dos demais campos.
+            user_cliente.full_clean(exclude=['password', 'confirm_password'])
+        except ValidationError as e:
+            return render(request, 'editar_perfil.html', {
+                'error': ' '.join(e.messages),
+                'user_cliente': user_cliente
+            })
 
         user_cliente.save()
 
@@ -862,7 +885,15 @@ def editar_cadastro_cafe(request, cafe_id):
         cafe.foto_ambiente = foto_ambiente
         cafe.cnpj = cnpj
         cafe.site_cafeteria = site_cafeteria
-        
+
+        try:
+            cafe.full_clean()
+        except ValidationError as e:
+            return render(request, 'editar_cadastro_cafe.html', {
+                'erro': ' '.join(e.messages),
+                'cafe': cafe
+            })
+
         cafe.save()
 
         return redirect('editar_cadastro_cafeteria_sucesso')
