@@ -172,8 +172,13 @@
             {% endif %}
             <div class="card-body">
                 <div class="right btn-group">
-                    <a href="{% url 'favoritar' favorito.cafe.id %}" class="btn-outline-secondary"><img
-                            style="height: 20px;" src="{% static 'images/desfavoritar.png' %}"></a>
+                    <form method="post" action="{% url 'favoritar' favorito.cafe.id %}" class="btn-outline-secondary"
+                        style="display: inline; padding: 0; border: none; background: none;">
+                        {% csrf_token %}
+                        <button type="submit" style="border: none; background: none; padding: 0; cursor: pointer;">
+                            <img style="height: 20px;" src="{% static 'images/desfavoritar.png' %}">
+                        </button>
+                    </form>
                 </div>
                 <h5 class="card-title">{{favorito.cafe.nome_cafeteria }}</h5>
                 <p class="card-text">{{ favorito.cafe.get_short_description}}</p>

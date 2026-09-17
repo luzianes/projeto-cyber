@@ -451,22 +451,26 @@
             {% if user.is_authenticated %}
             {% if cafe %}
             {% if favorito %}
-            <button class="btn">
-                <a href="{% url 'favoritar' cafe.id %}"
-                    style="display: flex; align-items: center; text-decoration: none; color: black;">
+            <form method="post" action="{% url 'favoritar' cafe.id %}" class="btn"
+                style="display: inline; padding: 0; border: none; background: none;">
+                {% csrf_token %}
+                <button type="submit"
+                    style="display: flex; align-items: center; border: none; background: none; color: black; cursor: pointer;">
                     <img style="height: 20px; margin-right: 5px;"
                         src="{% static 'images/desfavoritar.png' %}">
                     Desfavoritar
-                </a>
-            </button>
+                </button>
+            </form>
             {% else %}
-            <button class="btn">
-                <a href="{% url 'favoritar' cafe.id %}"
-                    style="display: flex; align-items: center; text-decoration: none; color: black;">
+            <form method="post" action="{% url 'favoritar' cafe.id %}" class="btn"
+                style="display: inline; padding: 0; border: none; background: none;">
+                {% csrf_token %}
+                <button type="submit"
+                    style="display: flex; align-items: center; border: none; background: none; color: black; cursor: pointer;">
                     <img style="height: 20px; margin-right: 5px;" src="{% static 'images/favoritar.png' %}">
                     Favoritar
-                </a>
-            </button>
+                </button>
+            </form>
             {% endif %}
             {% endif %}
             {% else %}
@@ -570,7 +574,7 @@
     <div class="review-card">
         <div class="review-content-wrapper">
             <div class="review-header">
-                <h4>{{ avaliacao.cliente.nome_completo }}</h4>
+                <h4>{{ avaliacao.cliente.nome_exibicao_publico }}</h4>
             </div>
             <div class="stars-and-description">
                 <div class="stars">

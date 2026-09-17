@@ -29,23 +29,36 @@ Modelo de ameaça mitigado
 --------------------------------------------------------------------------
 Vazamento/dump do banco de dados (SQLite local ou PostgreSQL no Azure). Com os
 campos cifrados em repouso, um atacante que obtenha o dump do banco NÃO lê os
-dados pessoais das reservas sem a chave. A chave (FIELD_ENCRYPTION_KEY) vive
-FORA do banco, em variável de ambiente, separando o dado do segredo que o
-protege.
+dados pessoais sem a chave. A chave (FIELD_ENCRYPTION_KEY) vive FORA do banco,
+em variável de ambiente, separando o dado do segredo que o protege.
 
-Observação: como o Fernet é não determinístico (IV aleatório), estes campos
-NÃO devem ser usados em filtros de igualdade (`.filter(campo=...)`) nem em
-restrições `unique`. Por isso foram escolhidos campos que só são exibidos,
-nunca consultados por valor.
+--------------------------------------------------------------------------
+Busca/unicidade em campo cifrado (blind index)
+--------------------------------------------------------------------------
+Como o Fernet é não determinístico (IV aleatório), o CIPHERTEXT não pode ser
+usado em `.filter(campo=...)` nem em restrições `unique` -- o mesmo e-mail
+gera um valor cifrado diferente a cada gravação. Para os poucos campos que
+precisam disso (email/CNPJ/whatsapp, usados em login e checagem de
+duplicidade), mantemos uma coluna adicional "*_hash" com um HMAC-SHA256
+determinístico (mesma entrada -> mesmo hash) do valor normalizado, usada só
+para lookup/unicidade. A chave do HMAC é a mesma FIELD_ENCRYPTION_KEY: sem
+ela, um dump do banco não permite forjar nem comparar hashes, e continua
+sendo necessário decifrar para saber o valor real -- o hash não reintroduz o
+texto em claro, só permite comparar igualdade.
 """
+import hashlib
+import hmac
+import logging
+
 from cryptography.fernet import Fernet, InvalidToken
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 
+logger = logging.getLogger('security')
 
-def _get_fernet():
-    """Constrói o cifrador a partir da chave em settings/ambiente."""
+
+def _get_key_bytes():
     key = getattr(settings, 'FIELD_ENCRYPTION_KEY', '') or ''
     if not key:
         raise ImproperlyConfigured(
@@ -53,9 +66,25 @@ def _get_fernet():
             "`python -c \"from cryptography.fernet import Fernet; "
             "print(Fernet.generate_key().decode())\"` e defina em projeto.env."
         )
-    if isinstance(key, str):
-        key = key.encode()
-    return Fernet(key)
+    return key.encode() if isinstance(key, str) else key
+
+
+def _get_fernet():
+    """Constrói o cifrador a partir da chave em settings/ambiente."""
+    return Fernet(_get_key_bytes())
+
+
+def calcular_hash_busca(valor):
+    """HMAC-SHA256 determinístico do valor normalizado (trim + lowercase),
+    usado como índice de busca/unicidade para campos cifrados. Normalizar
+    antes de gerar o hash é o que permite reproduzir comparação
+    case-insensitive (equivalente ao `__iexact` que se usaria num campo em
+    claro) mesmo comparando por hash.
+    """
+    if valor is None:
+        return None
+    valor_normalizado = str(valor).strip().lower()
+    return hmac.new(_get_key_bytes(), valor_normalizado.encode('utf-8'), hashlib.sha256).hexdigest()
 
 
 class EncryptedFieldMixin:
@@ -63,9 +92,10 @@ class EncryptedFieldMixin:
 
     Mantém um fallback para dados legados gravados em claro ANTES da migração
     de criptografia: se o valor no banco não for um token Fernet válido,
-    devolvemos o próprio valor (assumindo texto legado). Isso evita quebrar
-    linhas antigas enquanto elas não são migradas pelo comando
-    `encrypt_existing_data`.
+    devolvemos o próprio valor (assumindo texto legado) -- mas registramos um
+    aviso no log de segurança a cada leitura, para que a pendência fique
+    visível/monitorável em vez de silenciosa para sempre. Rodar o comando
+    `encrypt_existing_data` faz esse aviso parar de aparecer.
     """
 
     def get_prep_value(self, value):
@@ -81,7 +111,12 @@ class EncryptedFieldMixin:
         try:
             return _get_fernet().decrypt(value.encode('ascii')).decode('utf-8')
         except (InvalidToken, ValueError):
-            # Valor legado em claro (ainda não migrado) -> devolve como está.
+            logger.warning(
+                'Campo cifrado lido em texto puro (legado, ainda nao migrado): '
+                'model=%s campo=%s. Rode "manage.py encrypt_existing_data".',
+                self.model.__name__ if hasattr(self, 'model') else '?',
+                self.name if hasattr(self, 'name') else '?',
+            )
             return value
 
 

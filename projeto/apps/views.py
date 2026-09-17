@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .models import *
 from .models import Cafe, Avaliacao, UserCliente, Favorito
 from .captcha import recaptcha_valido
+from .crypto_fields import calcular_hash_busca
 from datetime import datetime
 from django.conf import settings
 from django.http import HttpResponseRedirect, Http404
@@ -94,10 +95,10 @@ def cadastro_cafeteria(request):
         if not cnpj.isdigit() or len(cnpj) != 14:
             return render(request, 'cadastro_cafeteria.html', {"erro": "O CNPJ deve conter apenas números e ter 14 dígitos."})
 
-        if Cafe.objects.filter(whatsapp=whatsapp).exists():
+        if Cafe.objects.filter(whatsapp_hash=calcular_hash_busca(whatsapp)).exists():
             return render(request, 'cadastro_cafeteria.html', {"erro": "O número de WhatsApp já está em uso."})
 
-        if Cafe.objects.filter(cnpj=cnpj).exists():
+        if Cafe.objects.filter(cnpj_hash=calcular_hash_busca(cnpj)).exists():
             return render(request, 'cadastro_cafeteria.html', {"erro": "O CNPJ já está em uso."})
         
         cafe = Cafe(
@@ -135,7 +136,7 @@ def cadastro_user_sucesso(request):
 
 @login_required
 def cancelar_reserva(request, reserva_id):
-    reserva = get_object_or_404(ReservaCafe, id=reserva_id, cliente__email=request.user.email)
+    reserva = get_object_or_404(ReservaCafe, id=reserva_id, cliente__user=request.user)
 
     if request.method == 'POST':
         reserva.delete()
@@ -147,7 +148,7 @@ def cancelar_reserva(request, reserva_id):
 @login_required
 def criar_reserva(request, cafe_id):
     cafe = get_object_or_404(Cafe, id=cafe_id)
-    cliente = get_object_or_404(UserCliente, email=request.user.email)
+    cliente = get_object_or_404(UserCliente, user=request.user)
     
     if request.method == 'POST':
         nome_cliente = request.POST.get('nome_cliente')
@@ -245,7 +246,7 @@ def detalhes_anonimo(request, cafe_id):
 def editar_reserva(request, reserva_id):
     # Autorização em nível de objeto: só o dono da reserva pode editá-la.
     try:
-        reserva = get_object_or_404(ReservaCafe, id=reserva_id, cliente__email=request.user.email)
+        reserva = get_object_or_404(ReservaCafe, id=reserva_id, cliente__user=request.user)
     except Http404:
         logger.warning(
             'Acesso negado: usuario=%s tentou editar reserva_id=%s que nao lhe pertence',
@@ -344,7 +345,7 @@ def enviar_email(request, cafe_id):
 def excluir_reserva(request, reserva_id):
     # Autorização em nível de objeto: só o dono da reserva pode excluí-la.
     try:
-        reserva = get_object_or_404(ReservaCafe, id=reserva_id, cliente__email=request.user.email)
+        reserva = get_object_or_404(ReservaCafe, id=reserva_id, cliente__user=request.user)
     except Http404:
         logger.warning(
             'Acesso negado: usuario=%s tentou excluir reserva_id=%s que nao lhe pertence',
@@ -364,8 +365,8 @@ def excluir_reserva(request, reserva_id):
 @login_required
 def favoritar(request, cafe_id):
     cafe = get_object_or_404(Cafe, id=cafe_id)
-    
-    if request.method == 'POST' or request.method == 'GET':
+
+    if request.method == 'POST':
         usuario = request.user
         
         favorito_existente = Favorito.objects.filter(usuario=usuario, cafe=cafe).exists()
@@ -601,7 +602,7 @@ def logout(request):
 @login_required
 def minhas_reservas(request):
     try:
-        cliente = UserCliente.objects.get(email=request.user.email)
+        cliente = UserCliente.objects.get(user=request.user)
     except UserCliente.DoesNotExist:
         return redirect('login')
 
@@ -618,7 +619,7 @@ def api_cafeterias(request):
 def api_minhas_reservas(request):
     # Mesmo filtro por dono usado em editar_reserva/excluir_reserva: cada
     # usuário só enxerga as próprias reservas, nunca as de terceiros.
-    reservas = ReservaCafe.objects.filter(cliente__email=request.user.email).values(
+    reservas = ReservaCafe.objects.filter(cliente__user=request.user).values(
         'id', 'cafe__nome_cafeteria', 'data_reserva', 'horario_reserva', 'numero_de_pessoas'
     )
     return JsonResponse({'reservas': list(reservas)})
@@ -661,7 +662,7 @@ def UserCadastro(request):
 
         email_em_uso = (
             User.objects.filter(email__iexact=email).exists()
-            or UserCliente.objects.filter(email__iexact=email).exists()
+            or UserCliente.objects.filter(email_hash=calcular_hash_busca(email)).exists()
         )
         if email_em_uso:
             messages.error(request, 'E-mail ja cadastrado.')
@@ -787,7 +788,7 @@ def editar_perfil(request):
         if not email:
             email = user_cliente.email
 
-        if UserCliente.objects.filter(email=email).exclude(id=user_cliente.id).exists():
+        if UserCliente.objects.filter(email_hash=calcular_hash_busca(email)).exclude(id=user_cliente.id).exists():
             return render(request, 'editar_perfil.html', {
                 'error': 'Este email já está em uso por outro usuário.',
                 'user_cliente': user_cliente
@@ -862,13 +863,13 @@ def editar_cadastro_cafe(request, cafe_id):
                 'cafe': cafe
             })
         
-        if Cafe.objects.filter(cnpj=cnpj).exclude(pk=cafe.pk).exists():
+        if Cafe.objects.filter(cnpj_hash=calcular_hash_busca(cnpj)).exclude(pk=cafe.pk).exists():
             return render(request, 'editar_cadastro_cafe.html', {
                 'erro': 'Este CNPJ já está em uso por outra cafeteria.',
                 'cafe': cafe
             })
         
-        if Cafe.objects.filter(whatsapp=whatsapp).exclude(pk=cafe.pk).exists():
+        if Cafe.objects.filter(whatsapp_hash=calcular_hash_busca(whatsapp)).exclude(pk=cafe.pk).exists():
             return render(request, 'editar_cadastro_cafe.html', {
                 'erro': 'Este Whatsapp já está em uso por outra cafeteria.',
                 'cafe': cafe

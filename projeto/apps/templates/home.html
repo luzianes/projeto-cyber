@@ -445,6 +445,17 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
+    function getCookie(name) {
+        var valor = null;
+        document.cookie.split(';').forEach(function (parte) {
+            parte = parte.trim();
+            if (parte.startsWith(name + '=')) {
+                valor = decodeURIComponent(parte.substring(name.length + 1));
+            }
+        });
+        return valor;
+    }
+
     $(document).ready(function () {
         $('.fav-icon').on('click', function () {
             var icon = $(this);
@@ -453,9 +464,10 @@
 
             $.ajax({
                 url: url,
-                method: 'GET',
+                method: 'POST',
                 headers: {
-                    'x-requested-with': 'XMLHttpRequest'
+                    'x-requested-with': 'XMLHttpRequest',
+                    'X-CSRFToken': getCookie('csrftoken')
                 },
                 success: function (response) {
                     if (response.status === 'favoritado') {

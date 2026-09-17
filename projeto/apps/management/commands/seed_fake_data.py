@@ -6,6 +6,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
+from apps.crypto_fields import calcular_hash_busca
 from apps.models import Avaliacao, Cafe, Favorito, Historico, ReservaCafe, UserCliente
 
 
@@ -504,7 +505,7 @@ class Command(BaseCommand):
             else:
                 user.groups.remove(group)
 
-            UserCliente.objects.filter(email=data["email"]).exclude(user=user).delete()
+            UserCliente.objects.filter(email_hash=calcular_hash_busca(data["email"])).exclude(user=user).delete()
             profile, _ = UserCliente.objects.update_or_create(
                 user=user,
                 defaults={
@@ -525,8 +526,9 @@ class Command(BaseCommand):
         for data in CAFES:
             owner = profiles[data["owner"]]
             cafe, _ = Cafe.objects.update_or_create(
-                cnpj=data["cnpj"],
+                cnpj_hash=calcular_hash_busca(data["cnpj"]),
                 defaults={
+                    "cnpj": data["cnpj"],
                     "responsavel": data["responsavel"],
                     "nome_cafeteria": data["nome_cafeteria"],
                     "endereco": data["endereco"],
@@ -579,20 +581,22 @@ class Command(BaseCommand):
 
     def _clear_seed_relations(self):
         seed_usernames = [user["username"] for user in USERS] + LEGACY_USERNAMES
-        seed_emails = [user["email"] for user in USERS] + LEGACY_EMAILS
-        seed_cnpjs = [cafe["cnpj"] for cafe in CAFES]
+        seed_email_hashes = [calcular_hash_busca(u["email"]) for u in USERS] + \
+            [calcular_hash_busca(e) for e in LEGACY_EMAILS]
+        seed_cnpj_hashes = [calcular_hash_busca(cafe["cnpj"]) for cafe in CAFES]
 
-        ReservaCafe.objects.filter(cliente__email__in=seed_emails, cafe__cnpj__in=seed_cnpjs).delete()
-        Avaliacao.objects.filter(cliente__email__in=seed_emails, cafe__cnpj__in=seed_cnpjs).delete()
-        Favorito.objects.filter(usuario__username__in=seed_usernames, cafe__cnpj__in=seed_cnpjs).delete()
-        Historico.objects.filter(usuario__username__in=seed_usernames, cafe__cnpj__in=seed_cnpjs).delete()
+        ReservaCafe.objects.filter(cliente__email_hash__in=seed_email_hashes, cafe__cnpj_hash__in=seed_cnpj_hashes).delete()
+        Avaliacao.objects.filter(cliente__email_hash__in=seed_email_hashes, cafe__cnpj_hash__in=seed_cnpj_hashes).delete()
+        Favorito.objects.filter(usuario__username__in=seed_usernames, cafe__cnpj_hash__in=seed_cnpj_hashes).delete()
+        Historico.objects.filter(usuario__username__in=seed_usernames, cafe__cnpj_hash__in=seed_cnpj_hashes).delete()
 
     def _reset_seed_data(self):
         self._clear_seed_relations()
-        seed_emails = [user["email"] for user in USERS] + LEGACY_EMAILS
+        seed_email_hashes = [calcular_hash_busca(u["email"]) for u in USERS] + \
+            [calcular_hash_busca(e) for e in LEGACY_EMAILS]
         seed_usernames = [user["username"] for user in USERS] + LEGACY_USERNAMES
-        seed_cnpjs = [cafe["cnpj"] for cafe in CAFES]
+        seed_cnpj_hashes = [calcular_hash_busca(cafe["cnpj"]) for cafe in CAFES]
 
-        Cafe.objects.filter(cnpj__in=seed_cnpjs).delete()
-        UserCliente.objects.filter(email__in=seed_emails).delete()
+        Cafe.objects.filter(cnpj_hash__in=seed_cnpj_hashes).delete()
+        UserCliente.objects.filter(email_hash__in=seed_email_hashes).delete()
         User.objects.filter(username__in=seed_usernames).delete()

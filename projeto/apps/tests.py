@@ -1,4 +1,5 @@
 from datetime import date, time, timedelta
+from unittest.mock import patch
 from urllib.parse import urlparse
 
 from django.contrib.auth.models import User
@@ -36,6 +37,12 @@ class ControleAcessoTests(TestCase):
     def setUp(self):
         self.client = Client()
         mail.outbox = []
+
+        # Testes de login/cadastro não devem depender da API real do
+        # reCAPTCHA (rede + chave de teste); a view só usa o resultado.
+        patcher_recaptcha = patch('apps.views.recaptcha_valido', return_value=True)
+        patcher_recaptcha.start()
+        self.addCleanup(patcher_recaptcha.stop)
 
         # Dona da reserva
         self.alice = User.objects.create_user(
