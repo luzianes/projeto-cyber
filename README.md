@@ -1,106 +1,90 @@
-# Aponte Cafés - Descobrindo cafeterias
+# SecureAI Lab — Aponte Cafés
 
-## Descrição
+Projeto da disciplina **Cibersegurança Aplicada a Dados e IA** (CESAR School), que reaproveita
+o **Aponte Cafés**, aplicação Django de descoberta e avaliação de cafeterias, originalmente
+desenvolvida na disciplina de Projetos 2, e a instrumenta com mecanismos de segurança,
+seguindo o ciclo **Desenvolvimento → Análise → Exploração → Correção → Reteste**.
 
-Este é um projeto Django para ajudar os usuários a descobrir e explorar cafeterias no Centro do Recife. O objetivo é fornecer uma plataforma onde os usuários possam visualizar, buscar e avaliar cafeterias próximas, além de poderem adicionar novas cafeterias ao sistema.
-Este é um trabalho para a disciplina de Projetos 2 - CESAR School 2024.1.
+## Descrição da aplicação
 
-## Funcionalidades
+O Aponte Cafés ajuda usuários a descobrir e avaliar cafeterias no Centro do Recife. Existem
+dois tipos de usuário: **cliente** (busca, favorita, reserva horário, avalia) e **empresário**
+(cadastra e administra a própria cafeteria).
 
-- Visualizar uma lista de cafeterias no centro da cidade e realizar buscas
-- Ver detalhes de cada cafeteria, incluindo localização, horário de funcionamento e telefone para contato
-- Adicionar novas cafeterias ao sistema, fornecendo informações básicas como nome, localização e informações de contato
-- Cadastrar clientes e editar informações no perfil do usuário
-- Favoritar cafeterias, consultar e editar lista de favoritos
-- Sistema de reservas de horário para clientes, também com opções de editar e excluir
-- Avaliar cafeterias e deixar comentários
-- Visualizar histórico de cafeterias visitadas no site
+### Funcionalidades
 
-## Tecnologias Utilizadas
+- Buscar e visualizar cafeterias (localização, horário, contato)
+- Cadastro e edição de perfil de usuário
+- Cadastro e edição de cafeteria (empresário)
+- Favoritar cafeterias e consultar/editar a lista
+- Reservar horário, consultar/editar/cancelar reservas
+- Avaliar cafeterias (nota, comentário, foto), com **moderação automática por IA**
+- Histórico de cafeterias visitadas
 
-- **Framework de Desenvolvimento** - Django - Framework web em Python para o back-end, sem o uso de Django forms nem Generic Views
-- **Interface** - HTML/CSS/JavaScript - Para a interface do usuário
-- **Banco de dados** - SQLite/PostgreSQL - Para armazenar informações sobre as cafeterias e avaliações dos usuários
-- **Hospedagem** - Azure - O produto final será hospedado na plataforma Azure, garantindo confiabilidade e escalabilidade.
+## Segurança implementada
 
-## Banco local ficticio (PostgreSQL + Docker no WSL)
+| Área | O que foi feito |
+|---|---|
+| **Autenticação e autorização** | 2 níveis de privilégio via grupo Django ("Empresários" x cliente), política de senha customizada, fluxo de redefinição de senha, login sem enumeração de usuário, correção de IDOR em reservas |
+| **Criptografia** | Campos sensíveis da reserva (`nome_cliente`, `observacao`) cifrados em repouso com Fernet (AES-128-CBC + HMAC-SHA256); senha de usuário com hash nativo do Django (PBKDF2) |
+| **Integridade** | Hash SHA-256 calculado no upload de fotos (perfil, cafeteria, avaliação) para detectar adulteração |
+| **API** | Endpoints JSON próprios (`/api/cafeterias/` público, `/api/minhas-reservas/` autenticado e filtrado por dono) |
+| **HTTPS** | Redirecionamento forçado e HSTS habilitados em produção |
+| **Segredos** | Nenhuma chave/senha no código-fonte — tudo via variável de ambiente (`projeto.env`, fora do Git) |
+| **Logs de segurança** | Login, acesso negado e decisões de moderação por IA registrados em `projeto/logs/security.log` |
+| **Segurança de IA** | Moderação de avaliações via API do Gemini; vulnerabilidade de *prompt injection* identificada, explorada e corrigida (isolamento instrução/dado + saída estruturada) |
 
-O projeto tem um `docker-compose.yml` na raiz com um PostgreSQL local e um `projeto.env` de desenvolvimento ja configurado para usar esse banco.
+Evidências completas (antes/depois de cada vulnerabilidade) estão em [evidencias/](evidencias/).
+Vulnerabilidades ainda em aberto e decisões técnicas justificadas ficam no relatório técnico do
+projeto (fora deste repositório).
 
-No WSL, a partir da raiz do repositorio:
+## Tecnologias
 
-```bash
-docker compose --env-file projeto.env up -d db
-```
+- **Back-end**: Django (Python), sem uso de Django Forms nem Generic Views
+- **Front-end**: HTML, CSS, JavaScript
+- **Banco de dados**: PostgreSQL (local via Docker, ou Azure em produção); SQLite como alternativa em dev
+- **IA**: API do Google Gemini (moderação de avaliações)
+- **Hospedagem**: Microsoft Azure (App Service)
 
-Depois rode as migrations e carregue dados ficticios:
+## Como rodar localmente
 
-```bash
-cd projeto
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-.venv/bin/python manage.py migrate
-.venv/bin/python manage.py seed_fake_data --reset
-.venv/bin/python manage.py runserver
-```
+1. Copie `projeto.env.example` para `projeto.env` (raiz do repositório) e preencha os valores (veja os comentários no próprio arquivo). No mínimo, gere um `SECRET_KEY` novo; para usar a
+   moderação por IA, gere uma `GEMINI_API_KEY` gratuita em
+   [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
 
-Credenciais do banco local:
+2. Suba o Postgres local via Docker (a partir da raiz do repositório):
 
-```text
-host: localhost
-porta: 5432
-banco: aponte_cafes_dev
-usuario: aponte_user
-senha: aponte_password
-```
+   ```bash
+   docker compose --env-file projeto.env up -d db
+   ```
 
-Usuarios ficticios da aplicacao usam a senha `Aponte123!`. O usuario `maria_julia` tambem tem acesso ao Django Admin.
+3. Instale as dependências e rode as migrations:
 
-## SR1
+   ```bash
+   cd projeto
+   python -m venv .venv
+   .venv/Scripts/python -m pip install -r requirements.txt   # Windows
+   # .venv/bin/python -m pip install -r requirements.txt     # Linux/WSL/macOS
+   .venv/Scripts/python manage.py migrate
+   .venv/Scripts/python manage.py seed_fake_data --reset      # dados fictícios
+   .venv/Scripts/python manage.py runserver
+   ```
 
-- As entregas e links relevantes do SR1 estão detalhadas no arquivo [SR1.md](https://github.com/MatheusVelame/projetos2g3/blob/main/SR1.md).
+## Equipe
 
-### Histórias
+**SecureAI Lab (Cibersegurança)**: Davi Gomes, Lisa Matubara, Luziane Santos, Luana Falcão,
+Maria Júlia Peixoto, Paulo Ricardo.
 
-- para o SR1, temos 5 histórias bem definidas e duas implementadas. As 5 histórias são:
-  1. Cadastro de Usuários
-  2. Cadastro de Cafeterias
-  3. Visualizar detalhes das informações das cafeterias cadastradas
-  4. Favoritar cafeterias
-  5. Avaliar cafeterias cadastradas
+**Projeto original (Projetos 2)**: [Arthur Borges](https://github.com/borgearthur),
+[Beatriz Pereira](https://github.com/biapereira2), [Lisa Matubara](https://github.com/lilymtbr),
+[Luziane Santos](https://github.com/luzianes), [Manuela Cavalcanti](https://github.com/Manuelaamorim),
+[Matheus Velame](https://github.com/MatheusVelame), [Matheus Cazé](https://github.com/ogcaze),
+[Thaís Aguiar](https://github.com/aguiarth), [Ygor Rosa](https://github.com/YgoRosa).
 
+## Histórico do projeto original
 
-## SR2
-
-- As entregas e links relevantes do SR2 estão detalhadas no arquivo [SR2.md](https://github.com/MatheusVelame/projetos2g3/blob/main/SR2.md).
-
-### Histórias
-
-- para o SR2, são 8 histórias bem definidas e duas implementadas. No total:
-  1. Visualizar Detalhes de Cafeterias
-  2. Fazer e ver Avaliações de Cafeterias
-  3. Cadastro de Cafeterias
-  4. Cadastro de Usuários
-  5. Favoritar/Desfavoritar Cafeterias
-  6. Busca por Cafeterias
-  7. Consultar lista de favoritos, editar/excluir itens
-  8. Sistema de reservas - agendar um horário, consultar lista de reservas e editar/excluir itens
-  9. Perfil do usuário - editar/excluir informações
-  10. Visualizar histórico de cafeterias visitadas no site
-
+Entregas do projeto original (disciplina de Projetos 2): [SR1.md](SR1.md) e [SR2.md](SR2.md).
 
 ## Licença
 
 Este projeto é licenciado sob a [MIT License](https://opensource.org/licenses/MIT).
-
-## Equipe
-
-- [Arthur Borges](https://github.com/borgearthur)
-- [Beatriz Pereira](https://github.com/biapereira2)
-- [Lisa Matubara](https://github.com/lilymtbr)
-- [Luziane Santos](https://github.com/luzianes)
-- [Manuela Cavalcanti](https://github.com/Manuelaamorim)
-- [Matheus Velame](https://github.com/MatheusVelame)
-- [Matheus Cazé](https://github.com/ogcaze)
-- [Thaís Aguiar](https://github.com/aguiarth)
-- [Ygor Rosa](https://github.com/YgoRosa)

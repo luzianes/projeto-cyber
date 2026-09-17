@@ -105,7 +105,10 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-projeto.env 
+projeto.env
+projeto.env.backup
+projeto.env.*.bak
+README.local-backup.md 
 
 # mkdocs documentation 
 /site 
