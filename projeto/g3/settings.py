@@ -104,26 +104,26 @@ if NOT_PROD:
     SESSION_COOKIE_SECURE = False
 
 else:
-    SECURE_SSL_REDIRECT = (
-        os.getenv('SECURE_SSL_REDIRECT', '0').lower()
-        in ['true', 't', '1']
-    )
+    # SECURE_SSL_REDIRECT continua opcional (a Cloudflare já pode estar
+    # fazendo o redirect HTTP->HTTPS antes de chegar aqui). Mas cookie
+    # seguro, reconhecimento de HTTPS via proxy e HSTS NÃO devem depender
+    # dele: em TARGET_ENV=prod a conexão do navegador sempre deveria ser
+    # HTTPS (via Cloudflare), então esses controles ficam sempre ativos,
+    # independente de o redirect estar habilitado no próprio Django.
+    SECURE_SSL_REDIRECT = \
+        os.getenv('SECURE_SSL_REDIRECT', '0').lower() in ['true', 't', '1']
 
-    SESSION_COOKIE_SECURE = SECURE_SSL_REDIRECT
-    CSRF_COOKIE_SECURE = SECURE_SSL_REDIRECT
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
-    if SECURE_SSL_REDIRECT:
-        SECURE_PROXY_SSL_HEADER = (
-            'HTTP_X_FORWARDED_PROTO',
-            'https'
-        )
-
-        SECURE_HSTS_SECONDS = int(
-            os.getenv('SECURE_HSTS_SECONDS', '31536000')
-        )
-
-        SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-        SECURE_HSTS_PRELOAD = True
+    # Necessário pro Django reconhecer request.is_secure()=True quando a
+    # requisição chega via proxy (Cloudflare/Azure) em HTTP internamente,
+    # mas com HTTPS entre o navegador e o proxy. Sem isso, nem o redirect
+    # nem o header HSTS abaixo são enviados, mesmo com HTTPS de verdade.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '31536000'))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 
     DATABASES = {
         'default': postgres_database_config(require_ssl=True)
@@ -154,6 +154,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'apps.security_headers.SecurityHeadersMiddleware',
 ]
 
 ROOT_URLCONF = 'g3.urls'

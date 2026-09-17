@@ -241,6 +241,48 @@ input do usuário.
   `Dockerfile`, `manage.py`) testados e confirmados **não acessíveis** via
   HTTP, inclusive tentativas de path traversal por `/static/`/`/media/`.
 
+**Cabeçalhos de segurança HTTP.** `X-Content-Type-Options` e
+`X-Frame-Options` já vinham do `SecurityMiddleware`/`XFrameOptionsMiddleware`
+nativos do Django. Três cabeçalhos importantes estavam ausentes, achados
+depois de um scan externo dos headers do site em produção:
+
+- **Content-Security-Policy (CSP)** — não existia. Adicionado via
+  middleware próprio (`apps/security_headers.py`), com lista de permissão
+  construída a partir do que a aplicação realmente carrega hoje (levantei
+  todo `<script src=`, `<link rel=stylesheet>` e `@import` de todos os
+  templates): jQuery/Bootstrap (jsDelivr, code.jquery.com), Font Awesome
+  (cdnjs), Google Fonts e o widget do reCAPTCHA (google.com/gstatic.com).
+  **Limitação assumida:** `script-src`/`style-src` incluem `'unsafe-inline'`
+  porque vários templates têm `<script>`/`<style>` inline (não usam nonce).
+  Isso enfraquece a CSP como defesa contra XSS que injete `<script>` inline
+  — a defesa mais forte contra XSS neste projeto continua sendo o
+  autoescape padrão do Django (nenhum `|safe`/`mark_safe` no código, ver
+  seção 4). Migrar os inlines para nonce por requisição fecharia essa
+  brecha, mas é refactor de todos os templates, não uma correção pontual —
+  documentado como próximo passo, não escondido.
+- **Permissions-Policy** — não existia. Adicionado no mesmo middleware,
+  desabilitando câmera, microfone, geolocalização e outras APIs de
+  hardware/sensor do navegador. Confirmei antes que a aplicação não usa
+  nenhuma delas (sem `<video>`, `<audio>`, `geolocation` ou
+  `getUserMedia` em nenhum template) — bloquear não quebra nada.
+- **Strict-Transport-Security (HSTS)** — o código já tinha suporte, mas
+  amarrado à variável `SECURE_SSL_REDIRECT`: se a Cloudflare já cuida do
+  redirect HTTP→HTTPS (comum) e ninguém setou essa env var no Django, o
+  HSTS nunca era enviado, mesmo com a conexão sendo HTTPS de verdade — e
+  pior, `SECURE_PROXY_SSL_HEADER` (necessário pro Django reconhecer
+  `request.is_secure()` quando a requisição chega via proxy) tinha essa
+  mesma dependência escondida. Desacoplado: em `TARGET_ENV=prod`, cookie
+  seguro, reconhecimento de HTTPS via proxy e HSTS ficam sempre ativos,
+  independente do redirect estar ligado no Django. Testado simulando uma
+  requisição HTTPS via proxy (`X-Forwarded-Proto: https`): o header
+  `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
+  passou a aparecer sem precisar de `SECURE_SSL_REDIRECT=1`.
+
+Testado em navegador real (Playwright): home, login, cadastro, fluxo de
+login com reCAPTCHA e o clique no favoritar via AJAX — **zero violações de
+CSP** no console, nenhuma quebra visual. Suíte de testes (14) continua
+passando.
+
 ---
 
 ## 5. Segurança da IA
