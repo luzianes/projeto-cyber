@@ -59,6 +59,11 @@ TARGET_ENV = os.getenv('TARGET_ENV', 'dev')
 NOT_PROD = not TARGET_ENV.lower().startswith('prod')
 SECRET_KEY = env_required('SECRET_KEY')
 DEBUG = env_bool('DEBUG')
+ALLOWED_HOSTS = [
+    "projeto-cyber.onrender.com",
+    "localhost",
+    "127.0.0.1",
+]
 
 
 if NOT_PROD:
