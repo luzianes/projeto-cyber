@@ -20,6 +20,7 @@ do projeto SecureAI Lab:
 """
 import json
 import logging
+import re
 
 import requests
 from django.conf import settings
@@ -27,6 +28,19 @@ from django.conf import settings
 from .masking import pseudonimizar
 
 logger = logging.getLogger('security')
+
+_KEY_PATTERN = re.compile(r'key=[^&\s]+')
+
+
+def _sanitizar_erro(exc):
+    """Remove qualquer 'key=...' de uma mensagem de exceção antes de logar.
+
+    Defesa em profundidade: mesmo enviando a chave via header (não mais via
+    query string), isso garante que nenhuma versão futura do requests/urllib3
+    que inclua a URL completa no texto do erro consiga vazar a API key para
+    o log de segurança.
+    """
+    return _KEY_PATTERN.sub('key=[REDACTED]', str(exc))
 
 GEMINI_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
@@ -54,7 +68,7 @@ def _classify_review_vulnerable(comentario, cliente_email=None):
     )
     response = requests.post(
         GEMINI_URL,
-        params={'key': api_key},
+        headers={'x-goog-api-key': api_key},
         json={'contents': [{'parts': [{'text': prompt}]}]},
         timeout=25,
     )
@@ -132,7 +146,7 @@ def classify_review(comentario, cliente_email=None):
         try:
             response = requests.post(
                 GEMINI_URL,
-                params={'key': api_key},
+                headers={'x-goog-api-key': api_key},
                 json=body,
                 timeout=25,
             )
@@ -144,7 +158,13 @@ def classify_review(comentario, cliente_email=None):
             ultimo_erro = exc
 
     if texto is None:
-        logger.error('Falha ao chamar API de moderacao de IA: %s', ultimo_erro)
+        # A chave nunca deve aparecer no log: mesmo com o header (em vez de
+        # query string), sanitizamos a mensagem por defesa em profundidade
+        # contra qualquer biblioteca que inclua a URL completa no erro.
+        logger.error(
+            'Falha ao chamar API de moderacao de IA: %s',
+            _sanitizar_erro(ultimo_erro),
+        )
         return ModerationResult('pendente')
 
     try:
