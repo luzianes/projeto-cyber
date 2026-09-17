@@ -72,8 +72,8 @@ projeto (fora deste repositório).
 
 ## Equipe
 
-**SecureAI Lab (Cibersegurança)**: Davi Gomes, Lisa Matubara, Luziane Santos, Luana Falcão,
-Maria Júlia Peixoto, Paulo Ricardo.
+**SecureAI Lab (Cibersegurança)**: [Davi Gomes](https://github.com/daviruy61), [Lisa Matubara](https://github.com/lilymtbr),
+[Luana Falcão](https://github.com/lua-mf), [Luziane Santos](https://github.com/luzianes),[Maria Júlia Peixoto](https://github.com/majupeixoto) e [Paulo Rago](https://github.com/paulo-rago).
 
 **Projeto original (Projetos 2)**: [Arthur Borges](https://github.com/borgearthur),
 [Beatriz Pereira](https://github.com/biapereira2), [Lisa Matubara](https://github.com/lilymtbr),
