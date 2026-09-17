@@ -72,14 +72,26 @@ projeto (fora deste repositório).
 
 ## Equipe
 
-**SecureAI Lab (Cibersegurança)**: [Davi Gomes](https://github.com/daviruy61), [Lisa Matubara](https://github.com/lilymtbr),
-[Luana Falcão](https://github.com/lua-mf), [Luziane Santos](https://github.com/luzianes),[Maria Júlia Peixoto](https://github.com/majupeixoto) e [Paulo Rago](https://github.com/paulo-rago).
+**SecureAI Lab (Cibersegurança)**:
 
-**Projeto original (Projetos 2)**: [Arthur Borges](https://github.com/borgearthur),
-[Beatriz Pereira](https://github.com/biapereira2), [Lisa Matubara](https://github.com/lilymtbr),
-[Luziane Santos](https://github.com/luzianes), [Manuela Cavalcanti](https://github.com/Manuelaamorim),
-[Matheus Velame](https://github.com/MatheusVelame), [Matheus Cazé](https://github.com/ogcaze),
-[Thaís Aguiar](https://github.com/aguiarth), [Ygor Rosa](https://github.com/YgoRosa).
+- [Davi Gomes](https://github.com/daviruy61)
+- [Lisa Matubara](https://github.com/lilymtbr)
+- [Luana Falcão](https://github.com/lua-mf)
+- [Luziane Santos](https://github.com/luzianes)
+- [Maria Júlia Peixoto](https://github.com/majupeixoto)
+- [Paulo Rago](https://github.com/paulo-rago)
+
+**Projeto original (Projetos 2)**:
+
+- [Arthur Borges](https://github.com/borgearthur)
+- [Beatriz Pereira](https://github.com/biapereira2)
+- [Lisa Matubara](https://github.com/lilymtbr)
+- [Luziane Santos](https://github.com/luzianes)
+- [Manuela Cavalcanti](https://github.com/Manuelaamorim)
+- [Matheus Velame](https://github.com/MatheusVelame)
+- [Matheus Cazé](https://github.com/ogcaze)
+- [Thaís Aguiar](https://github.com/aguiarth)
+- [Ygor Rosa](https://github.com/YgoRosa)
 
 ## Histórico do projeto original
 
