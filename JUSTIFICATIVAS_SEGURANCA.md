@@ -57,9 +57,12 @@ Corrigido: a view só processa `POST`; os dois botões que eram `<a href>` (em
 `detalhes.html` e `favoritos.html`) passaram a ser `<form method="post">`
 com `{% csrf_token %}`; as duas versões via AJAX (`home.html`,
 `historico.html`) passaram a mandar `POST` com o `X-CSRFToken` lido do
-cookie. Testado num navegador real (Playwright): `GET` não favorita mais
-(só redireciona), `POST` favorita normalmente nos dois fluxos (clique no
-ícone via JS e clique no botão via form).
+cookie. Testado num navegador real (Playwright), com evidência salva no
+repositório (não só descrita): `evidencias/04-favoritar-csrf-get/` — `GET`
+direto na URL não favorita mais (fica "Favoritar", sem mudança), `POST`
+real via clique favorita normalmente ("Desfavoritar", com o registro
+criado no banco). Screenshots e log de requisições em
+`evidencias/04-favoritar-csrf-get/depois/`.
 
 ---
 
@@ -278,10 +281,15 @@ depois de um scan externo dos headers do site em produção:
   `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
   passou a aparecer sem precisar de `SECURE_SSL_REDIRECT=1`.
 
-Testado em navegador real (Playwright): home, login, cadastro, fluxo de
-login com reCAPTCHA e o clique no favoritar via AJAX — **zero violações de
-CSP** no console, nenhuma quebra visual. Suíte de testes (14) continua
-passando.
+Testado em navegador real (Playwright) nesta sessão: home, login, cadastro,
+fluxo de login com reCAPTCHA e o clique no favoritar via AJAX — zero
+violações de CSP no console, nenhuma quebra visual. **Nota de
+verificabilidade:** diferente do item de `favoritar` (que tem screenshot e
+log salvos em `evidencias/04-...`), este teste específico de CSP não teve
+evidência persistida no repositório — só a suíte de testes automatizada
+(14 testes) é reproduzível a partir do código. Se for citar este teste no
+relatório, deixe claro que é uma verificação pontual da sessão de
+desenvolvimento, não um artefato reproduzível no repo.
 
 ---
 

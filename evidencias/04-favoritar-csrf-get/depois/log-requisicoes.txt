@@ -1,0 +1,9 @@
+Estado inicial do botao: "Favoritar"
+REQUEST: GET http://127.0.0.1:8000/favoritar/2
+RESPONSE: 302 http://127.0.0.1:8000/favoritar/2
+GET direto na URL /favoritar/2 -> status 200, redirecionou para: http://127.0.0.1:8000/
+Estado do botao APOS o GET direto: "Favoritar" (esperado: sem mudanca, "Favoritar")
+REQUEST: POST http://127.0.0.1:8000/favoritar/2
+RESPONSE: 302 http://127.0.0.1:8000/favoritar/2
+Apos clicar de verdade (POST), pagina redirecionou para: http://127.0.0.1:8000/favoritos/
+Estado do botao APOS o POST real: "Desfavoritar" (esperado: mudou para "Desfavoritar")
