@@ -24,6 +24,8 @@ import logging
 import requests
 from django.conf import settings
 
+from .masking import pseudonimizar
+
 logger = logging.getLogger('security')
 
 GEMINI_URL = (
@@ -158,12 +160,12 @@ def classify_review(comentario, cliente_email=None):
         logger.warning(
             'moderacao_ia resposta fora do schema esperado, tratando como '
             'rejeitado por seguranca. cliente=%s resposta_bruta=%r',
-            cliente_email, texto,
+            pseudonimizar(cliente_email), texto,
         )
         status = 'rejeitado'
 
     logger.info(
         'moderacao_ia cliente=%s status=%s resposta_bruta=%r',
-        cliente_email, status, texto,
+        pseudonimizar(cliente_email), status, texto,
     )
     return ModerationResult(status, raw_response=texto)

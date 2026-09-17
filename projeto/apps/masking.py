@@ -26,6 +26,21 @@ def mascarar_nome(nome_completo):
     return f'{partes[0]} {partes[-1][0]}.'
 
 
+def pseudonimizar(valor):
+    """Identificador estável e não-reversível para uso em LOG (nunca em
+    lugar do dado real armazenado). Mesmo valor -> mesmo pseudônimo -- útil
+    pra correlacionar entradas de log do mesmo usuário sem gravar o dado
+    pessoal em claro no arquivo de log. Reaproveita o HMAC do blind index
+    (`calcular_hash_busca`, chaveado por FIELD_ENCRYPTION_KEY): sem a chave,
+    quem só tem acesso ao log não recupera o valor original nem consegue
+    forjar/comparar contra um candidato.
+    """
+    from .crypto_fields import calcular_hash_busca
+    if not valor:
+        return valor
+    return 'usr_' + calcular_hash_busca(valor)[:12]
+
+
 def mascarar_email(email):
     """"joao.silva@gmail.com" -> "j***a@gmail.com"."""
     if not email or '@' not in email:

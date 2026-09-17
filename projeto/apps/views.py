@@ -124,6 +124,7 @@ def cadastro_cafeteria(request):
             return render(request, 'cadastro_cafeteria.html', {'erro': ' '.join(e.messages)})
 
         cafe.save()
+        logger.info('Cafeteria cadastrada: cafe_id=%s usuario=%s', cafe.id, usuario.username)
         return redirect('cadastro_cafeteria_sucesso')
 
     return render(request, 'cadastro_cafeteria.html')
@@ -139,6 +140,7 @@ def cancelar_reserva(request, reserva_id):
     reserva = get_object_or_404(ReservaCafe, id=reserva_id, cliente__user=request.user)
 
     if request.method == 'POST':
+        logger.info('Reserva cancelada: reserva_id=%s usuario=%s', reserva.id, request.user.username)
         reserva.delete()
         messages.success(request, 'Reserva cancelada com sucesso.')
         return redirect('minhas_reservas')
@@ -207,7 +209,8 @@ def criar_reserva(request, cafe_id):
             observacao=observacao
         )
         reserva.save()
-        
+        logger.info('Reserva criada: reserva_id=%s cafe_id=%s usuario=%s', reserva.id, cafe.id, request.user.username)
+
         messages.success(request, 'Reserva efetuada com sucesso.')
         return redirect('minhas_reservas')
     
@@ -307,7 +310,8 @@ def editar_reserva(request, reserva_id):
         reserva.numero_de_pessoas = numero_de_pessoas
         reserva.observacao = observacao
         reserva.save()
-        
+        logger.info('Reserva editada: reserva_id=%s usuario=%s', reserva.id, request.user.username)
+
         messages.success(request, 'Reserva atualizada com sucesso.')
         return redirect('minhas_reservas')
     
@@ -354,6 +358,7 @@ def excluir_reserva(request, reserva_id):
         raise
     
     if request.method == 'POST':
+        logger.info('Reserva excluida: reserva_id=%s usuario=%s', reserva.id, request.user.username)
         reserva.delete()
         messages.success(request, 'Reserva excluída com sucesso.')
         return redirect('minhas_reservas')
@@ -896,6 +901,7 @@ def editar_cadastro_cafe(request, cafe_id):
             })
 
         cafe.save()
+        logger.info('Cafeteria editada: cafe_id=%s usuario=%s', cafe.id, request.user.username)
 
         return redirect('editar_cadastro_cafeteria_sucesso')
     
