@@ -128,8 +128,9 @@ else:
     DATABASES = {
         'default': postgres_database_config(require_ssl=True)
     }
-    
-DATABASES["default"] = dj_database_url.parse("postgresql://apontecafe_postgresql_user:YDVd8Q9uOBKPi0ttd4dyW7WYfbNyo5fZ@dpg-dam45a65vjqs73bmass0-a/apontecafe_postgresql")
+database_url = os.getenv('DATABASE_URL')
+if database_url:
+    DATABASES["default"] = dj_database_url.parse(database_url)
     
 # Application definition
 
