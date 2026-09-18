@@ -1,0 +1,14 @@
+Reteste em navegador real (Playwright), sessão de 2026-09-17:
+
+1) Logado como ana_bezerra (dona da reserva id=1), acesso direto a
+   /editar_reserva/2/ (reserva pertence a bruno_lima)
+   -> status: 404
+   Screenshot: 3-idor-bloqueado-404.png
+
+2) Logado como ana_bezerra, acesso à própria reserva /editar_reserva/1/
+   -> status: 200 (acesso normal ao dono)
+   Screenshot: 4-dono-acessa-propria-reserva.png
+
+3) Anônimo (sem login) acessando /cafeteria/1/editar/
+   -> redirecionado para http://127.0.0.1:8000/login/?next=/cafeteria/1/editar/
+   Screenshot: 5-anonimo-redirecionado-login.png

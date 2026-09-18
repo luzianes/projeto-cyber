@@ -80,6 +80,24 @@ O que cada teste prova:
 - **Anti-enumeração:** e-mail inexistente e senha errada retornam a mesma
   mensagem, sem "Usuário não encontrado".
 
+## Reteste em navegador real (Playwright), com capturas de tela
+
+Além da suíte automatizada acima, os mesmos cenários foram reproduzidos num
+navegador de verdade contra a aplicação rodando localmente, com contas de
+teste reais (`ana.bezerra@apontecafes.local`, dona da reserva `id=1`, e
+`bruno.lima@apontecafes.local`, dono da reserva `id=2`):
+
+1. **IDOR bloqueado:** logada como ana_bezerra, acesso a
+   `/editar_reserva/2/` (reserva de bruno_lima) → `3-idor-bloqueado-404.png`
+   (HTTP 404, sem vazar que a reserva existe)
+2. **Dono acessa normalmente:** ana_bezerra em `/editar_reserva/1/` (a
+   própria reserva) → `4-dono-acessa-propria-reserva.png` (HTTP 200)
+3. **Anônimo redirecionado:** acesso sem login a `/cafeteria/1/editar/` →
+   `5-anonimo-redirecionado-login.png` (redireciona para
+   `/login/?next=/cafeteria/1/editar/`)
+
+Log bruto dos status HTTP capturados: `log-requisicoes.txt`.
+
 ## Arquivos alterados
 
 - `apps/views.py` — `editar_reserva`, `excluir_reserva` (filtro por dono);
