@@ -1,5 +1,13 @@
 # Evidência — Reteste após correção (DEPOIS)
 
+> **Atualização:** o log abaixo foi capturado antes da pseudonimização do
+> identificador do cliente (correção posterior, ver Seção 4.1 do relatório e
+> `apps/masking.py`, função `pseudonimizar`). Hoje, rodando o mesmo reteste,
+> a linha de log aparece como `cliente=usr_<hash>` em vez do e-mail em claro
+> — o e-mail em texto puro que aparece abaixo é histórico, não reflete o
+> comportamento atual. O resultado da classificação (`aprovado`→`rejeitado`)
+> continua o mesmo.
+
 **Vulnerabilidade:** Prompt injection / bypass de moderação de conteúdo por IA
 **Componente:** `apps/ai_moderation.py` (função `classify_review`, versão corrigida)
 

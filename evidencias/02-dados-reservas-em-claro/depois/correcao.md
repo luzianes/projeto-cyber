@@ -194,5 +194,6 @@ ReservaCafe: 4 | já cifradas: 4 | a cifrar: 0
 - `apps/management/commands/seed_fake_data.py` — mesmos lookups corrigidos;
 - `apps/management/commands/encrypt_existing_data.py` — generalizado para
   todos os modelos cifrados (antes só `ReservaCafe`);
-- `apps/migrations/0052_...py`, `0053_...py` — schema + backfill de hash +
-  cifragem de dado legado em uma migração de dados.
+- `apps/migrations/0052_remove_usercliente_confirm_password_and_more.py`,
+  `0053_alter_cafe_cnpj_hash_alter_cafe_whatsapp_hash_and_more.py` — schema +
+  backfill de hash + cifragem de dado legado em uma migração de dados.

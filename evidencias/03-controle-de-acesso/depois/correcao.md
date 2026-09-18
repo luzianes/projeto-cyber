@@ -12,7 +12,7 @@ pelo dono**, seguindo o padrão que `cancelar_reserva` já usava:
 ```python
 # antes
 reserva = get_object_or_404(ReservaCafe, id=reserva_id)
-# depois
+# depois (nesta rodada)
 reserva = get_object_or_404(ReservaCafe, id=reserva_id,
                             cliente__email=request.user.email)
 ```
@@ -20,6 +20,14 @@ reserva = get_object_or_404(ReservaCafe, id=reserva_id,
 Agora, se o usuário logado não é o dono, o objeto simplesmente **não é
 encontrado** (HTTP 404) — ele não consegue nem ler, nem editar, nem excluir a
 reserva alheia.
+
+> **Atualização:** numa rodada posterior, quando `UserCliente.email` passou a
+> ser cifrado (ver `evidencias/02-dados-reservas-em-claro/depois/`, seção
+> "Atualização — blind index"), esse filtro deixou de funcionar por valor de
+> e-mail e foi trocado por `cliente__user=request.user` — join direto pela
+> chave estrangeira, que já identifica o dono sem depender de um campo
+> cifrado. A garantia de autorização (só o dono acessa) é a mesma; só o
+> mecanismo de comparação mudou.
 
 ### 2. `@login_required` adicionado
 Adicionado o decorator em `editar_cadastro_cafe` e em `enviar_email`. Visitantes
@@ -32,9 +40,9 @@ genérica** ("E-mail ou senha inválidos."), e o `MultipleObjectsReturned` é
 tratado (sem 500):
 
 ```python
-credenciais_invalidas = 'E-mail ou senha inválidos.'
+credenciais_invalidas = 'Usuario ou senha invalidos.'
 try:
-    username = User.objects.get(email=email).username
+    username = User.objects.get(email__iexact=email).username
 except (ObjectDoesNotExist, User.MultipleObjectsReturned):
     return render(request, 'login.html', {'error': credenciais_invalidas})
 ...
@@ -81,6 +89,10 @@ O que cada teste prova:
 
 ## Fora do escopo desta rodada (registrado para depois)
 
-- `favoritar` aceita **GET** para operação que altera estado (CSRF via `<img>`);
-  ideal torná-la POST-only.
-- `print()` de sessão/ID/grupos em várias views → remover (info disclosure).
+- ~~`favoritar` aceita **GET** para operação que altera estado (CSRF via `<img>`);
+  ideal torná-la POST-only.~~ **Corrigido numa rodada posterior** — ver
+  `evidencias/04-favoritar-csrf-get/`.
+- ~~`print()` de sessão/ID/grupos em várias views → remover (info disclosure).~~
+  **Corrigido numa rodada posterior** — `print()`s de depuração removidos de
+  `apps/views.py` (um deles imprimia o conteúdo inteiro da sessão a cada
+  requisição para `/cadastro_cafeteria`).
