@@ -1,0 +1,86 @@
+{% extends 'global/base_empresario_main.html' %}
+{% load static %}
+{% block content %}
+
+<style>
+    .inbox-container {
+        max-width: 760px;
+        margin: 40px auto;
+        padding: 0 16px;
+    }
+    .inbox-container h1 {
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+    .msg-card {
+        display: block;
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 16px 20px;
+        margin-bottom: 14px;
+        text-decoration: none;
+        color: inherit;
+        transition: box-shadow 0.15s ease;
+    }
+    .msg-card:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    }
+    .msg-card .meta {
+        font-size: 12px;
+        color: #888;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .msg-card .preview {
+        font-size: 15px;
+        color: #333;
+    }
+    .msg-card.nao-lida .preview {
+        font-weight: 700;
+    }
+    .badge-nova {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: #fff;
+        background-color: #A75938;
+        padding: 2px 7px;
+        border-radius: 10px;
+    }
+    .no-msgs {
+        color: #888;
+        text-align: center;
+        margin-top: 40px;
+    }
+    .voltar {
+        display: inline-block;
+        margin-bottom: 16px;
+        color: #A75938;
+        text-decoration: none;
+        font-size: 14px;
+    }
+</style>
+
+<div class="inbox-container">
+    <a class="voltar" href="{% url 'cafeterias_empresarios' %}">&larr; Voltar para minhas cafeterias</a>
+    <h1>Caixa de entrada</h1>
+
+    {% if mensagens %}
+        {% for m in mensagens %}
+        <a class="msg-card {% if not m.lida %}nao-lida{% endif %}" href="{% url 'ver_mensagem_privada' m.id %}">
+            <div class="meta">
+                De <strong>{{ m.remetente }}</strong> · {{ m.cafe }} · {{ m.enviada_em }}
+                {% if not m.lida %}<span class="badge-nova">NOVA</span>{% endif %}
+            </div>
+            <div class="preview">{{ m.preview }}</div>
+        </a>
+        {% endfor %}
+    {% else %}
+        <p class="no-msgs">Nenhuma mensagem recebida ainda.</p>
+    {% endif %}
+</div>
+{% endblock %}

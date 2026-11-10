@@ -28,6 +28,7 @@ import logging
 import random
 from django.http import JsonResponse
 from .ai_moderation import classify_review
+from .mensageria_cripto import cifrar, gerar_chave
 
 logger = logging.getLogger('security')
 LOGIN_ERROR_MESSAGE = 'Usuario ou senha invalidos.'
@@ -344,6 +345,80 @@ def enviar_email(request, cafe_id):
         messages.success(request, "Email enviado com sucesso!")
         return render(request, 'email_enviado.html', {'cafeteria': cafeteria})
     return render(request, 'enviar_email.html', {'cafeteria': cafeteria})
+
+@login_required
+def enviar_mensagem_privada(request, cafe_id):
+    cafe = get_object_or_404(Cafe, pk=cafe_id)
+
+    if request.method == 'POST':
+        texto = request.POST.get('texto', '').strip()
+        if not texto:
+            messages.error(request, 'Escreva uma mensagem antes de enviar.')
+            return render(request, 'enviar_mensagem_privada.html', {'cafe': cafe})
+
+        chave = gerar_chave()
+        MensagemPrivada.objects.create(
+            remetente=request.user,
+            cafe=cafe,
+            texto_cifrado=cifrar(texto, chave),
+            chave=chave,
+        )
+        logger.info(
+            'Mensagem privada enviada: usuario=%s cafe_id=%s',
+            request.user.username, cafe.id,
+        )
+        messages.success(request, 'Mensagem enviada com sucesso!')
+        return redirect('detalhes', cafe_id=cafe.id)
+
+    return render(request, 'enviar_mensagem_privada.html', {'cafe': cafe})
+
+@login_required
+def caixa_entrada(request):
+    is_empresario = request.user.groups.filter(name='Empresários').exists()
+    if not is_empresario:
+        messages.error(request, 'Apenas empresários têm caixa de entrada.')
+        return redirect('home')
+
+    user_cliente = get_object_or_404(UserCliente, user=request.user)
+    cafeterias_do_dono = Cafe.objects.filter(empresario=user_cliente)
+    mensagens = (
+        MensagemPrivada.objects
+        .filter(cafe__in=cafeterias_do_dono)
+        .select_related('remetente', 'cafe')
+        .order_by('-enviada_em')
+    )
+
+    limite_preview = 80
+    mensagens_exibidas = []
+    for m in mensagens:
+        texto = m.texto_decifrado().strip()
+        preview = texto[:limite_preview].rstrip() + '…' if len(texto) > limite_preview else texto
+        mensagens_exibidas.append({
+            'id': m.id,
+            'remetente': m.remetente.username,
+            'cafe': m.cafe.nome_cafeteria,
+            'preview': preview,
+            'enviada_em': m.enviada_em,
+            'lida': m.lida,
+        })
+
+    return render(request, 'caixa_entrada.html', {'mensagens': mensagens_exibidas})
+
+@login_required
+def ver_mensagem_privada(request, mensagem_id):
+    user_cliente = get_object_or_404(UserCliente, user=request.user)
+    cafeterias_do_dono = Cafe.objects.filter(empresario=user_cliente)
+    # Autorização em nível de objeto: só abre mensagem de cafeteria da própria empresária.
+    mensagem = get_object_or_404(MensagemPrivada, id=mensagem_id, cafe__in=cafeterias_do_dono)
+
+    if not mensagem.lida:
+        mensagem.lida = True
+        mensagem.save(update_fields=['lida'])
+
+    return render(request, 'mensagem_privada_detalhe.html', {
+        'mensagem': mensagem,
+        'texto': mensagem.texto_decifrado(),
+    })
 
 @login_required
 def excluir_reserva(request, reserva_id):

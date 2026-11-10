@@ -10,6 +10,7 @@ from .integrity import calcular_sha256_arquivo
 from .masking import mascarar_nome
 from .validators import validar_conteudo_imagem
 from .upload_paths import upload_profile_image, upload_foto_ambiente, upload_foto_avaliacao
+from .mensageria_cripto import cifrar, decifrar
 
 class UserCliente(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
@@ -231,3 +232,23 @@ class Avaliacao(models.Model):
         return f"Avaliação de {self.cliente.nome_completo} para {self.cafe.nome_cafeteria}"
 
 
+class MensagemPrivada(models.Model):
+    """Mensagem privada de um cliente para o dono de uma cafeteria.
+
+    Cifrada com o algoritmo próprio do Projeto 2 (ver mensageria_cripto.py
+    -- rede de substituição-permutação feita à mão, com chave dinâmica).
+    Diferente da criptografia Fernet usada nos demais campos do app: esta
+    existe especificamente para o exercício de cripto/ataques do Projeto 2.
+    """
+    remetente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='mensagens_enviadas')
+    cafe = models.ForeignKey(Cafe, on_delete=models.CASCADE, related_name='mensagens_recebidas')
+    texto_cifrado = models.TextField()
+    chave = models.CharField(max_length=255)
+    enviada_em = models.DateTimeField(auto_now_add=True)
+    lida = models.BooleanField(default=False)
+
+    def texto_decifrado(self):
+        return decifrar(self.texto_cifrado, self.chave)
+
+    def __str__(self):
+        return f"Mensagem de {self.remetente.username} para {self.cafe.nome_cafeteria}"

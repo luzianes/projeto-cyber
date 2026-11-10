@@ -11,7 +11,10 @@
         </div>
     </section>
     <section class="cafeterias">
-        <h2>Minhas cafeterias</h2>
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; max-width: 1200px; margin: 0 auto; padding: 0 20px;">
+            <h2 style="margin: 0;">Minhas cafeterias</h2>
+            <a class="editar-cafeteria" href="{% url 'caixa_entrada' %}">Ver mensagens privadas</a>
+        </div>
         <div class="cafe-list">
             {% for cafe in cafeterias %}
             <div class="cafe-item">

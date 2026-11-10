@@ -1,0 +1,68 @@
+{% extends 'global/base.html' %}
+{% load static %}
+{% block content %}
+
+<style>
+    .msg-container {
+        max-width: 600px;
+        margin: 60px auto;
+        padding: 24px;
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .msg-container h1 {
+        font-size: 22px;
+        margin-bottom: 16px;
+    }
+    .msg-container textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        resize: vertical;
+    }
+    .msg-container button {
+        margin-top: 16px;
+        padding: 10px 24px;
+        background-color: #A75938;
+        color: #fff;
+        border: none;
+        border-radius: 20px;
+        cursor: pointer;
+    }
+    .messages { margin-bottom: 16px; }
+    .alert { padding: 10px; border-radius: 4px; margin-bottom: 8px; }
+    .alert-error { background-color: #f2dede; color: #a94442; }
+    .alert-success { background-color: #dff0d8; color: #3c763d; }
+    .voltar {
+        display: inline-block;
+        margin-bottom: 12px;
+        color: #A75938;
+        text-decoration: none;
+        font-size: 14px;
+    }
+</style>
+
+<div class="msg-container">
+    <a class="voltar" href="{% url 'detalhes' cafe.id %}">&larr; Voltar para {{ cafe.nome_cafeteria }}</a>
+    <h1>Mensagem privada para {{ cafe.nome_cafeteria }}</h1>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <textarea name="texto" placeholder="Escreva sua mensagem..."></textarea>
+        <br>
+        <button type="submit">Enviar</button>
+    </form>
+</div>
+{% endblock %}
