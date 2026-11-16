@@ -25,6 +25,7 @@ import re
 import requests
 from django.conf import settings
 
+from .eventos import registrar_evento
 from .masking import pseudonimizar
 
 logger = logging.getLogger('security')
@@ -187,5 +188,11 @@ def classify_review(comentario, cliente_email=None):
     logger.info(
         'moderacao_ia cliente=%s status=%s resposta_bruta=%r',
         pseudonimizar(cliente_email), status, texto,
+    )
+    # Só o veredito vai para a tabela de eventos (sem o comentário e sem a resposta bruta).
+    registrar_evento(
+        'moderacao_ia', origem='ai_moderation', sucesso=(status == 'aprovado'),
+        severidade='alerta' if status == 'rejeitado' else 'info',
+        detalhes={'status': status},
     )
     return ModerationResult(status, raw_response=texto)

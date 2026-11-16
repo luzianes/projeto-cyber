@@ -44,6 +44,8 @@ import logging
 import os
 import random
 
+from .eventos import agora_ms, registrar_evento
+
 logger = logging.getLogger('security')
 
 TAMANHO_BLOCO = 8  # bytes
@@ -153,9 +155,12 @@ def _remover_padding(dados):
     return dados[:-faltam]
 
 
-def cifrar(texto, chave):
+def cifrar(texto, chave, usuario='', ip=None):
     """texto: str. chave: string base64 (de gerar_chave()).
-    Retorna: string base64 contendo IV + blocos cifrados."""
+    Retorna: string base64 contendo IV + blocos cifrados.
+
+    `usuario`/`ip` são opcionais e só servem para o evento de auditoria."""
+    inicio = agora_ms()
     chave_bytes = base64.urlsafe_b64decode(chave.encode('utf-8'))
     subchaves = _subchaves(chave_bytes)
 
@@ -175,14 +180,23 @@ def cifrar(texto, chave):
         blocos_cifrados.append(cifrado)
         anterior = cifrado
 
-    return base64.urlsafe_b64encode(b''.join(blocos_cifrados)).decode('utf-8')
+    resultado = base64.urlsafe_b64encode(b''.join(blocos_cifrados)).decode('utf-8')
+    # Só metadados: nunca o texto, a chave nem o texto cifrado.
+    registrar_evento(
+        'cifragem', usuario=usuario, ip=ip, origem='mensageria_cripto',
+        duracao_ms=round(agora_ms() - inicio, 3),
+        detalhes={'bytes_entrada': len(texto.encode('utf-8')),
+                  'blocos': len(blocos_cifrados) - 1, 'rodadas': NUM_RODADAS},
+    )
+    return resultado
 
 
-def decifrar(texto_cifrado, chave):
+def decifrar(texto_cifrado, chave, usuario='', ip=None):
     """Levanta a exceção original pra quem chamou (comportamento não muda),
     mas antes registra a falha no log de segurança -- é esse registro que
     alimenta a anomalia "frequência elevada de falhas de descriptografia"
     (Pessoa 5 / Big Data, Pessoa 4) com dado de verdade."""
+    inicio = agora_ms()
     try:
         chave_bytes = base64.urlsafe_b64decode(chave.encode('utf-8'))
         subchaves = _subchaves(chave_bytes)
@@ -200,7 +214,18 @@ def decifrar(texto_cifrado, chave):
             anterior = bloco_cifrado
 
         dados = _remover_padding(b''.join(blocos_decifrados))
-        return dados.decode('utf-8')
+        resultado = dados.decode('utf-8')
     except Exception as exc:
         logger.warning('falha_decriptografia motivo=%s: %s', type(exc).__name__, exc)
+        registrar_evento(
+            'falha_decifragem', usuario=usuario, ip=ip, origem='mensageria_cripto',
+            duracao_ms=round(agora_ms() - inicio, 3),
+            detalhes={'motivo': type(exc).__name__},
+        )
         raise
+    registrar_evento(
+        'decifragem', usuario=usuario, ip=ip, origem='mensageria_cripto',
+        duracao_ms=round(agora_ms() - inicio, 3),
+        detalhes={'blocos': len(blocos_decifrados)},
+    )
+    return resultado

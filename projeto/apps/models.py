@@ -247,8 +247,98 @@ class MensagemPrivada(models.Model):
     enviada_em = models.DateTimeField(auto_now_add=True)
     lida = models.BooleanField(default=False)
 
-    def texto_decifrado(self):
-        return decifrar(self.texto_cifrado, self.chave)
+    def texto_decifrado(self, usuario='', ip=None):
+        return decifrar(self.texto_cifrado, self.chave, usuario=usuario, ip=ip)
 
     def __str__(self):
         return f"Mensagem de {self.remetente.username} para {self.cafe.nome_cafeteria}"
+
+
+class EventoSeguranca(models.Model):
+    """Tabela central de eventos do SecureAI Lab (camada "Big Data").
+
+    Uma linha por evento relevante para segurança: operações criptográficas,
+    autenticação, controle de acesso, integridade de arquivos, moderação por
+    IA, ataques simulados e anomalias detectadas. É a fonte de dados da IA de
+    anomalias e do dashboard.
+
+    PRIVACIDADE: não grava texto em claro de mensagens, chaves
+    criptográficas ou senhas. `detalhes` guarda só metadados (tamanhos,
+    tempos, contagens, nomes de objetos).
+    """
+    CIFRAGEM = 'cifragem'
+    DECIFRAGEM = 'decifragem'
+    FALHA_DECIFRAGEM = 'falha_decifragem'
+    LOGIN_SUCESSO = 'login_sucesso'
+    LOGIN_FALHA = 'login_falha'
+    LOGIN_BLOQUEADO = 'login_bloqueado'
+    ACESSO_NEGADO = 'acesso_negado'
+    INTEGRIDADE_VIOLADA = 'integridade_violada'
+    MODERACAO_IA = 'moderacao_ia'
+    ESTEGANOGRAFIA = 'esteganografia'
+    ATAQUE_FORCA_BRUTA = 'ataque_forca_bruta'
+    ATAQUE_DIFERENCIAL = 'ataque_diferencial'
+    ATAQUE_ESTATISTICO = 'ataque_estatistico'
+    ANOMALIA = 'anomalia'
+
+    TIPOS = [
+        (CIFRAGEM, 'Cifragem'),
+        (DECIFRAGEM, 'Decifragem'),
+        (FALHA_DECIFRAGEM, 'Falha de decifragem'),
+        (LOGIN_SUCESSO, 'Login bem-sucedido'),
+        (LOGIN_FALHA, 'Falha de login'),
+        (LOGIN_BLOQUEADO, 'Login bloqueado (CAPTCHA)'),
+        (ACESSO_NEGADO, 'Acesso negado'),
+        (INTEGRIDADE_VIOLADA, 'Integridade violada'),
+        (MODERACAO_IA, 'Moderação por IA'),
+        (ESTEGANOGRAFIA, 'Esteganografia'),
+        (ATAQUE_FORCA_BRUTA, 'Ataque: força bruta'),
+        (ATAQUE_DIFERENCIAL, 'Ataque: diferencial'),
+        (ATAQUE_ESTATISTICO, 'Ataque: estatístico'),
+        (ANOMALIA, 'Anomalia detectada'),
+    ]
+
+    INFO, ALERTA, CRITICO = 'info', 'alerta', 'critico'
+    SEVERIDADES = [(INFO, 'Info'), (ALERTA, 'Alerta'), (CRITICO, 'Crítico')]
+
+    # Categoria = camada do sistema que gerou o evento (facilita agrupar).
+    CATEGORIAS = [
+        ('criptografia', 'Criptografia'),
+        ('autenticacao', 'Autenticação'),
+        ('autorizacao', 'Autorização'),
+        ('integridade', 'Integridade'),
+        ('ia', 'Inteligência Artificial'),
+        ('esteganografia', 'Esteganografia'),
+        ('ataque', 'Ataques simulados'),
+        ('anomalia', 'Anomalias'),
+    ]
+
+    criado_em = models.DateTimeField(default=timezone.now, db_index=True)
+    tipo = models.CharField(max_length=30, choices=TIPOS, db_index=True)
+    categoria = models.CharField(max_length=20, choices=CATEGORIAS, db_index=True)
+    severidade = models.CharField(max_length=10, choices=SEVERIDADES, default=INFO)
+    sucesso = models.BooleanField(default=True)
+    # Texto (não FK): sobrevive à exclusão do usuário e permite registrar
+    # tentativas com usuário inexistente (e-mails digitados ficam pseudonimizados).
+    usuario = models.CharField(max_length=150, blank=True, default='', db_index=True)
+    ip = models.GenericIPAddressField(null=True, blank=True, db_index=True)
+    # Módulo/fluxo de origem (ex.: "mensageria_cripto", "login_view").
+    origem = models.CharField(max_length=60, blank=True, default='')
+    duracao_ms = models.FloatField(null=True, blank=True)
+    # Metadados livres (JSON). Ver aviso de privacidade acima.
+    detalhes = models.JSONField(default=dict, blank=True)
+    # True = evento sintético (gerar_eventos_simulados); False = real.
+    simulado = models.BooleanField(default=False, db_index=True)
+
+    class Meta:
+        ordering = ['-criado_em']
+        verbose_name = 'Evento de segurança'
+        verbose_name_plural = 'Eventos de segurança'
+        indexes = [
+            models.Index(fields=['tipo', 'criado_em']),
+            models.Index(fields=['ip', 'criado_em']),
+            models.Index(fields=['usuario', 'criado_em']),
+        ]
+
+    def __str__(self):
+        return f'[{self.criado_em:%Y-%m-%d %H:%M:%S}] {self.tipo} usuario={self.usuario or "-"} ip={self.ip or "-"}'

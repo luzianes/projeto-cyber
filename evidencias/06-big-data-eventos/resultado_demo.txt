@@ -1,0 +1,58 @@
+# Demonstração: importação do log real + 50.000 eventos simulados
+$ manage.py importar_logs_seguranca
+250 eventos importados | 0 já importados | 37 linhas ignoradas (sem regra).
+$ manage.py gerar_eventos_simulados --qtd 50000 --dias 14
+52612 eventos simulados criados (50000 normais + anomalias). Use --limpar para removê-los.
+
+$ manage.py analisar_eventos
+== Resumo dos eventos ==
+Total: 52862 | falhas: 4790 (9.1%) | IPs: 54 | usuários: 54
+Período: 2026-09-14 14:14:37+00:00 -> 2026-11-16 12:46:24.818305+00:00
+
+Por tipo:
+  cifragem                 16731
+  decifragem               14988
+  login_sucesso            14833
+  login_falha              2422
+  moderacao_ia             1520
+  acesso_negado            1220
+  falha_decifragem         1126
+  integridade_violada      22
+
+Por categoria:
+  criptografia             32845
+  autenticacao             17255
+  ia                       1520
+  autorizacao              1220
+  integridade              22
+
+Por severidade:
+  info                     46571
+  alerta                   5177
+  critico                  1114
+
+Duração média (ms):
+  cifragem                 0.603
+  decifragem               0.5
+  falha_decifragem         0.407
+
+Top ip em login_falha:
+  203.0.113.89             182
+  203.0.113.119            143
+  10.0.11.92               62
+  10.0.8.64                58
+  10.0.17.77               58
+
+Top usuario em falha_decifragem:
+  cliente19                123
+  cliente24                112
+  cliente35                94
+  cliente40                67
+  cliente17                41
+
+Top usuario em acesso_negado:
+  cliente22                112
+  cliente35                107
+  cliente09                76
+  cliente39                51
+  cliente06                33

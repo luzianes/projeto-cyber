@@ -29,6 +29,8 @@ import random
 from django.http import JsonResponse
 from .ai_moderation import classify_review
 from .mensageria_cripto import cifrar, gerar_chave
+from .eventos import registrar_evento, ip_da_requisicao
+from .masking import pseudonimizar
 
 logger = logging.getLogger('security')
 LOGIN_ERROR_MESSAGE = 'Usuario ou senha invalidos.'
@@ -70,6 +72,8 @@ def cadastro_cafeteria(request):
             'Acesso negado: usuario=%s tentou cadastrar cafeteria sem ser empresario',
             usuario.username,
         )
+        registrar_evento('acesso_negado', usuario=usuario.username, ip=ip_da_requisicao(request),
+                         origem='cadastro_cafeteria', detalhes={'motivo': 'nao_empresario'})
         messages.error(request, 'Apenas empresários podem cadastrar cafeterias.')
         return redirect('acesso_negado_cadastrar_cafeteria')
 
@@ -256,6 +260,8 @@ def editar_reserva(request, reserva_id):
             'Acesso negado: usuario=%s tentou editar reserva_id=%s que nao lhe pertence',
             request.user.username, reserva_id,
         )
+        registrar_evento('acesso_negado', usuario=request.user.username, ip=ip_da_requisicao(request),
+                         origem='editar_reserva', detalhes={'motivo': 'idor_reserva', 'reserva_id': reserva_id})
         raise
     cafe = reserva.cafe
     
@@ -360,7 +366,7 @@ def enviar_mensagem_privada(request, cafe_id):
         MensagemPrivada.objects.create(
             remetente=request.user,
             cafe=cafe,
-            texto_cifrado=cifrar(texto, chave),
+            texto_cifrado=cifrar(texto, chave, usuario=request.user.username, ip=ip_da_requisicao(request)),
             chave=chave,
         )
         logger.info(
@@ -391,7 +397,7 @@ def caixa_entrada(request):
     limite_preview = 80
     mensagens_exibidas = []
     for m in mensagens:
-        texto = m.texto_decifrado().strip()
+        texto = m.texto_decifrado(usuario=request.user.username, ip=ip_da_requisicao(request)).strip()
         preview = texto[:limite_preview].rstrip() + '…' if len(texto) > limite_preview else texto
         mensagens_exibidas.append({
             'id': m.id,
@@ -417,7 +423,7 @@ def ver_mensagem_privada(request, mensagem_id):
 
     return render(request, 'mensagem_privada_detalhe.html', {
         'mensagem': mensagem,
-        'texto': mensagem.texto_decifrado(),
+        'texto': mensagem.texto_decifrado(usuario=request.user.username, ip=ip_da_requisicao(request)),
     })
 
 @login_required
@@ -430,6 +436,8 @@ def excluir_reserva(request, reserva_id):
             'Acesso negado: usuario=%s tentou excluir reserva_id=%s que nao lhe pertence',
             request.user.username, reserva_id,
         )
+        registrar_evento('acesso_negado', usuario=request.user.username, ip=ip_da_requisicao(request),
+                         origem='excluir_reserva', detalhes={'motivo': 'idor_reserva', 'reserva_id': reserva_id})
         raise
     
     if request.method == 'POST':
@@ -565,24 +573,31 @@ def login_view(request):
 
         if not recaptcha_valido(request):
             logger.warning('Login bloqueado (reCAPTCHA invalido): email=%s ip=%s', email, ip)
+            registrar_evento('login_bloqueado', usuario=pseudonimizar(email), ip=ip, origem='login_view',
+                             detalhes={'motivo': 'recaptcha_invalido'})
             return render(request, 'login.html', {'error': 'Verificação de CAPTCHA falhou. Tente novamente.'})
 
         try:
             username = User.objects.get(email__iexact=email).username
         except (ObjectDoesNotExist, User.MultipleObjectsReturned):
             logger.warning('Login falhou (email nao cadastrado): email=%s ip=%s', email, ip)
+            registrar_evento('login_falha', usuario=pseudonimizar(email), ip=ip, origem='login_view',
+                             detalhes={'motivo': 'email_nao_cadastrado'})
             return render(request, 'login.html', {'error': credenciais_invalidas})
 
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
             logger.info('Login bem-sucedido: usuario=%s ip=%s', user.username, ip)
+            registrar_evento('login_sucesso', usuario=user.username, ip=ip, origem='login_view')
             if user.groups.filter(name='Empresários').exists():
                 return redirect('cafeterias_empresarios')
             else:
                 return redirect('home')
         else:
             logger.warning('Login falhou (senha incorreta): email=%s ip=%s', email, ip)
+            registrar_evento('login_falha', usuario=pseudonimizar(email), ip=ip, origem='login_view',
+                             detalhes={'motivo': 'senha_incorreta'})
             return render(request, 'login.html', {'error': credenciais_invalidas})
         
     return render(request, 'login.html')
@@ -938,7 +953,7 @@ def editar_cadastro_cafe(request, cafe_id):
             })
 
         if not cnpj.isdigit() or len(cnpj) != 14:
-            return render(request, 'editar_cadastro_cafe.htmll', {
+            return render(request, 'editar_cadastro_cafe.html', {
                 'erro': 'O CNPJ deve conter apenas números e ter 14 dígitos.',
                 'cafe': cafe
             })

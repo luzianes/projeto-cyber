@@ -6,6 +6,7 @@ de perfil) ainda batem com o SHA-256 calculado no momento do envio.
 from django.core.management.base import BaseCommand
 import logging
 
+from apps.eventos import registrar_evento
 from apps.integrity import verificar_integridade_arquivo
 from apps.models import Avaliacao, Cafe, UserCliente
 
@@ -47,6 +48,10 @@ class Command(BaseCommand):
                     logger.warning(
                         'Integridade violada: %s#%s.%s nao bate com o hash registrado no upload',
                         modelo.__name__, obj.pk, campo_arquivo,
+                    )
+                    registrar_evento(
+                        'integridade_violada', origem='verificar_integridade_arquivos',
+                        detalhes={'modelo': modelo.__name__, 'objeto_id': obj.pk, 'campo': campo_arquivo},
                     )
 
         self.stdout.write(

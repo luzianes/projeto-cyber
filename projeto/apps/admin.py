@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UserCliente, Cafe, Favorito, Historico, ReservaCafe, Avaliacao, MensagemPrivada
+from .models import UserCliente, Cafe, Favorito, Historico, ReservaCafe, Avaliacao, MensagemPrivada, EventoSeguranca
 
 # Função para registrar um modelo se não estiver registrado
 def register_model(admin_site, model):
@@ -23,3 +23,21 @@ class MensagemPrivadaAdmin(admin.ModelAdmin):
 
 if MensagemPrivada not in admin.site._registry:
     admin.site.register(MensagemPrivada, MensagemPrivadaAdmin)
+
+
+class EventoSegurancaAdmin(admin.ModelAdmin):
+    """Somente leitura: eventos são trilha de auditoria, não devem ser editados."""
+    list_display = ('criado_em', 'tipo', 'severidade', 'sucesso', 'usuario', 'ip', 'origem', 'simulado')
+    list_filter = ('tipo', 'severidade', 'categoria', 'sucesso', 'simulado')
+    search_fields = ('usuario', 'ip', 'origem')
+    date_hierarchy = 'criado_em'
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+if EventoSeguranca not in admin.site._registry:
+    admin.site.register(EventoSeguranca, EventoSegurancaAdmin)
