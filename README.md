@@ -33,6 +33,7 @@ dois tipos de usuário: **cliente** (busca, favorita, reserva horário, avalia) 
 | **Segredos** | Nenhuma chave/senha no código-fonte — tudo via variável de ambiente (`projeto.env`, fora do Git) |
 | **Logs de segurança** | Login, acesso negado e decisões de moderação por IA registrados em `projeto/logs/security.log` |
 | **Segurança de IA** | Moderação de avaliações via API do Gemini; vulnerabilidade de *prompt injection* identificada, explorada e corrigida (isolamento instrução/dado + saída estruturada) |
+| **Ataques à cifra própria** | Força bruta, diferencial e estatístico contra a cifra da mensageria (`manage.py rodar_ataques`); veredito: sem efeito avalanche e insegura, com a chave de 64 bits recuperada em ~1 s a partir de texto conhecido. Ver [docs/ATAQUES_CIFRA.md](docs/ATAQUES_CIFRA.md) |
 
 Evidências completas (antes/depois de cada vulnerabilidade) estão em [evidencias/](evidencias/).
 Vulnerabilidades ainda em aberto e decisões técnicas justificadas ficam no relatório técnico do

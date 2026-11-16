@@ -1,0 +1,227 @@
+{
+  "diferencial": {
+    "texto": {
+      "bits_alterados_media": 4.03,
+      "percentual_bits": 6.3,
+      "bytes_alterados_max": 1,
+      "mapa_entrada_saida": [
+        [
+          1
+        ],
+        [
+          3
+        ],
+        [
+          2
+        ],
+        [
+          0
+        ],
+        [
+          4
+        ],
+        [
+          5
+        ],
+        [
+          6
+        ],
+        [
+          7
+        ]
+      ],
+      "bytes_que_nao_mudam_de_posicao": [
+        2,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    "chave": {
+      "bits_alterados_media": 14.58,
+      "percentual_bits": 22.78,
+      "bytes_alterados_max": 4
+    },
+    "mensagem_cbc": {
+      "percentual_bits": 6.23,
+      "bytes_alterados_max_por_bloco": 1,
+      "blocos_anteriores_intactos": true
+    },
+    "ingenuo_iv_aleatorio": {
+      "percentual_bits": 50.35
+    },
+    "sbox": {
+      "uniformidade_diferencial": 14,
+      "probabilidade": 0.0547,
+      "referencia_aes": 4
+    },
+    "maleabilidade": {
+      "original": "Para 2 pessoas, sábado às 20h.",
+      "adulterado": "Para 9 pessoas, sábado às 20h.",
+      "maleavel": true
+    },
+    "tem_avalanche": false,
+    "vulnerabilidade_encontrada": true,
+    "resumo": {
+      "amostras": 200,
+      "percentual_bits_texto": 6.3,
+      "percentual_bits_chave": 22.78,
+      "ideal_percentual": 50.0,
+      "bytes_alterados_max_por_bloco": 1,
+      "percentual_ingenuo_iv_aleatorio": 50.35,
+      "sbox_uniformidade_diferencial": 14,
+      "tem_avalanche": false,
+      "maleavel": true
+    },
+    "duracao_ms": 361.481,
+    "evento_id": null
+  },
+  "forca_bruta": {
+    "estimativa": {
+      "espaco_chaves_bits": 64,
+      "espaco_chaves": 18446744073709551616,
+      "taxa_chaves_por_s": 10605,
+      "anos_pior_caso": 55117622.63252837,
+      "anos_caso_medio": 27558811.316264186,
+      "minimo_recomendado_bits": 128
+    },
+    "reduzida": {
+      "bits_desconhecidos": 16,
+      "espaco": 65536,
+      "tentativas": 11481,
+      "tempo_s": 1.083,
+      "quebrou": true,
+      "texto_recuperado": "Oi! Posso levar meu cachorro para a área externa? Obrigado!"
+    },
+    "dividir_conquistar": {
+      "bytes_texto_conhecido": 24,
+      "candidatos_por_posicao": [
+        1,
+        275,
+        279,
+        2,
+        281,
+        1,
+        271,
+        299
+      ],
+      "chaves_coerentes": 1,
+      "tempo_s": 1.011,
+      "quebrou": true,
+      "texto_recuperado": "Olá, equipe da cafeteria! Tudo bem? Meu voucher é CAFE-7Q2X-91 e a reserva está no nome de Ana Lima."
+    },
+    "vulnerabilidade_encontrada": true,
+    "resumo": {
+      "espaco_chaves_bits": 64,
+      "taxa_chaves_por_s": 10605,
+      "anos_estimados_caso_medio": 27558811,
+      "reduzida_bits": 16,
+      "reduzida_tentativas": 11481,
+      "reduzida_quebrou": true,
+      "dividir_conquistar_quebrou": true,
+      "bytes_texto_conhecido": 24,
+      "dividir_conquistar_s": 1.011
+    },
+    "duracao_ms": 2377.016,
+    "evento_id": null
+  },
+  "estatistico": {
+    "texto_claro": {
+      "bytes": 130747,
+      "valores_distintos": 55,
+      "entropia_bits_por_byte": 4.5805,
+      "qui_quadrado": 1960357.9,
+      "p_valor": 0.0,
+      "mais_comuns_pct": [
+        [
+          " ",
+          15.05
+        ],
+        [
+          "a",
+          9.9
+        ],
+        [
+          "o",
+          8.48
+        ],
+        [
+          "e",
+          7.76
+        ],
+        [
+          "r",
+          5.76
+        ]
+      ]
+    },
+    "texto_cifrado": {
+      "bytes": 139640,
+      "valores_distintos": 256,
+      "entropia_bits_por_byte": 7.9987,
+      "qui_quadrado": 247.6,
+      "p_valor": 0.6192043289556288,
+      "mais_comuns_pct": [
+        [
+          "F",
+          0.44
+        ],
+        [
+          "0x11",
+          0.43
+        ],
+        [
+          ")",
+          0.43
+        ],
+        [
+          "0xdf",
+          0.43
+        ],
+        [
+          "D",
+          0.43
+        ]
+      ]
+    },
+    "uniforme": true,
+    "blocos_repetidos": {
+      "blocos_iguais_no_texto": 8,
+      "distintos_com_cbc": 8,
+      "distintos_sem_cbc": 1
+    },
+    "mesma_mensagem_duas_vezes_pct_bytes_iguais": 0.0,
+    "tamanho": {
+      "correlacao_tamanho_claro_cifrado": 0.9511,
+      "mensagens_com_tamanho_deduzido": 2000,
+      "incerteza_bytes": 8
+    },
+    "vulnerabilidade_encontrada": false,
+    "resumo": {
+      "mensagens": 2000,
+      "bytes_analisados": 139640,
+      "entropia_claro": 4.5805,
+      "entropia_cifrado": 7.9987,
+      "qui2_cifrado": 247.6,
+      "p_valor_cifrado": 0.6192,
+      "uniforme": true,
+      "blocos_distintos_com_cbc": 8,
+      "blocos_distintos_sem_cbc": 1,
+      "vaza_tamanho": true
+    },
+    "duracao_ms": 200.09,
+    "evento_id": null
+  },
+  "veredito": {
+    "tem_avalanche": false,
+    "seguro": false,
+    "motivos": [
+      "Sem efeito avalanche: inverter 1 bit do texto muda em média 6,3% dos bits do bloco (ideal: ~50%) e nunca mais de 1 byte(s) por bloco; inverter 1 bit da chave muda 22,8%.",
+      "Chave de 64 bits recuperada em 1,0 s com 24 bytes de texto conhecido (cada byte é atacado separadamente).",
+      "Mesmo sem esse atalho, 64 bits está abaixo do mínimo recomendado (128 bits).",
+      "Maleável (não há autenticação): alterando 1 byte do IV, o texto decifrado virou 'Para 9 pessoas, sábado às 20h.' sem conhecer a chave.",
+      "Ponto positivo: a análise de frequência não funciona; os bytes cifrados são uniformes (entropia 7,999 bits/byte, p = 0,619), graças ao CBC com IV aleatório e à chave nova por mensagem."
+    ]
+  }
+}

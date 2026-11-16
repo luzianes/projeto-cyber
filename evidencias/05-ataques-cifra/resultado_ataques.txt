@@ -1,0 +1,48 @@
+# Execução dos ataques à cifra da mensageria (Pessoa 2)
+# (--nao-registrar: no banco local as migrations 0054/0055 ainda não foram aplicadas;
+#  o registro dos eventos é coberto por apps/test_ataques.py)
+$ python manage.py rodar_ataques --nao-registrar --json ../evidencias/05-ataques-cifra/resultados_ataques.json
+
+== 1. Ataque diferencial (efeito avalanche) ==
+Inverter 1 bit do TEXTO (mesma chave, mesmo IV): 4,03 de 64 bits mudam (6,3%; ideal ~50%). Máx. de bytes alterados no bloco: 1 de 8.
+Inverter 1 bit da CHAVE (mesmo texto): 14,58 de 64 bits mudam (22,8%). Máx. de bytes alterados: 4 de 8.
+Byte de entrada -> bytes de saída afetados: 0->[1], 1->[3], 2->[2], 3->[0], 4->[4], 5->[5], 6->[6], 7->[7]
+  bytes que saem na mesma posição em que entraram: [2, 4, 5, 6, 7]
+Mensagem de 5 blocos (CBC), 1 bit alterado no 1º bloco: 6,2% dos bits mudam, no máx. 1 byte por bloco. Alterar o último bloco deixa os anteriores intactos: sim.
+Comparação ingênua (cifrar() 2x, IV sorteado a cada vez): 50,4% -> parece avalanche, mas é só o IV aleatório.
+S-box: uniformidade diferencial 14 (o melhor diferencial passa com probabilidade 5,5%; no AES: 4).
+Maleabilidade (sem a chave, alterando 1 byte do IV): 'Para 2 pessoas, sábado às 20h.' -> 'Para 9 pessoas, sábado às 20h.'
+Efeito avalanche: NÃO
+
+== 2. Ataque de força bruta ==
+(a) Chave reduzida a 16 bits (65.536 chaves), só com o texto cifrado: achada em 11.481 tentativas, 1,08 s -> QUEBROU
+    texto recuperado: 'Oi! Posso levar meu cachorro para a área externa? Obrigado!'
+(b) Chave real de 64 bits = 18.446.744.073.709.551.616 chaves. Taxa medida: 10.605 chaves/s (decifrar() em Python, 1 núcleo).
+    Tempo estimado: 27.558.811 anos em média (55.117.623 no pior caso). Mínimo recomendado hoje: 128 bits.
+(c) Dividir para conquistar, chave completa de 64 bits, com 24 bytes de texto conhecido (início da mensagem):
+    candidatos por byte do bloco: [1, 275, 279, 2, 281, 1, 271, 299] -> 1 chave(s) coerente(s), 1,01 s -> QUEBROU
+    mensagem inteira recuperada: 'Olá, equipe da cafeteria! Tudo bem? Meu voucher é CAFE-7Q2X-91 e a reserva está no nome de Ana Lima.'
+Força bruta: QUEBROU a chave
+
+== 3. Ataque estatístico (análise de frequência) ==
+Corpus: 2.000 mensagens, cada uma com chave nova.
+Texto claro  : 130.747 bytes, 55 valores distintos, entropia 4,580 bits/byte, qui² = 1.960.357,9 (p = 0,0000)
+               mais frequentes: ' ' 15,05%, 'a' 9,90%, 'o' 8,48%, 'e' 7,76%, 'r' 5,76%
+Texto cifrado: 139.640 bytes, 256 valores distintos, entropia 7,999 bits/byte, qui² = 247,6 (p = 0,6192)
+               mais frequentes: 'F' 0,44%, '0x11' 0,43%, ')' 0,43%, '0xdf' 0,43%, 'D' 0,43%
+Distribuição do cifrado é uniforme (p > 0,01)? SIM (máximo teórico de entropia: 8 bits/byte)
+8 blocos de texto idênticos -> blocos cifrados distintos: 8 com CBC, 1 sem o encadeamento (o padrão ficaria visível).
+Mesma mensagem e mesma chave cifradas 2x: 0,0% de bytes iguais.
+Vazamento de tamanho: em 2.000 de 2.000 mensagens o tamanho do texto foi deduzido só do cifrado, com margem de 8 bytes.
+Análise de frequência: NÃO quebrou
+
+== Veredito ==
+Tem efeito avalanche? NÃO
+É segura?             NÃO
+  - Sem efeito avalanche: inverter 1 bit do texto muda em média 6,3% dos bits do bloco (ideal: ~50%) e nunca mais de 1 byte(s) por bloco; inverter 1 bit da chave muda 22,8%.
+  - Chave de 64 bits recuperada em 1,0 s com 24 bytes de texto conhecido (cada byte é atacado separadamente).
+  - Mesmo sem esse atalho, 64 bits está abaixo do mínimo recomendado (128 bits).
+  - Maleável (não há autenticação): alterando 1 byte do IV, o texto decifrado virou 'Para 9 pessoas, sábado às 20h.' sem conhecer a chave.
+  - Ponto positivo: a análise de frequência não funciona; os bytes cifrados são uniformes (entropia 7,999 bits/byte, p = 0,619), graças ao CBC com IV aleatório e à chave nova por mensagem.
+
+Resultados salvos em ../evidencias/05-ataques-cifra/resultados_ataques.json
