@@ -40,8 +40,11 @@ PARA QUEM FOR MEXER (Pessoa 2 - ataques):
     de frequência dos bytes do resultado (antes do base64).
 """
 import base64
+import logging
 import os
 import random
+
+logger = logging.getLogger('security')
 
 TAMANHO_BLOCO = 8  # bytes
 TAMANHO_CHAVE = 8  # bytes -- ver nota de força bruta acima
@@ -136,7 +139,17 @@ def _aplicar_padding(dados):
 
 
 def _remover_padding(dados):
+    # Validação completa do PKCS7 (não só olhar o último byte): com chave
+    # errada, os dados decifrados são lixo -- sem validar isso direito, o
+    # "lixo" às vezes passa batido e devolve algo sem sentido (ex: string
+    # vazia) em vez de erro, escondendo a falha em vez de sinalizá-la.
+    if not dados:
+        raise ValueError('padding inválido: dados vazios')
     faltam = dados[-1]
+    if faltam < 1 or faltam > TAMANHO_BLOCO or faltam > len(dados):
+        raise ValueError('padding inválido (provável chave incorreta)')
+    if dados[-faltam:] != bytes([faltam]) * faltam:
+        raise ValueError('padding inválido (provável chave incorreta)')
     return dados[:-faltam]
 
 
@@ -166,20 +179,28 @@ def cifrar(texto, chave):
 
 
 def decifrar(texto_cifrado, chave):
-    chave_bytes = base64.urlsafe_b64decode(chave.encode('utf-8'))
-    subchaves = _subchaves(chave_bytes)
+    """Levanta a exceção original pra quem chamou (comportamento não muda),
+    mas antes registra a falha no log de segurança -- é esse registro que
+    alimenta a anomalia "frequência elevada de falhas de descriptografia"
+    (Pessoa 5 / Big Data, Pessoa 4) com dado de verdade."""
+    try:
+        chave_bytes = base64.urlsafe_b64decode(chave.encode('utf-8'))
+        subchaves = _subchaves(chave_bytes)
 
-    bruto = base64.urlsafe_b64decode(texto_cifrado.encode('utf-8'))
-    iv, corpo = bruto[:TAMANHO_BLOCO], bruto[TAMANHO_BLOCO:]
+        bruto = base64.urlsafe_b64decode(texto_cifrado.encode('utf-8'))
+        iv, corpo = bruto[:TAMANHO_BLOCO], bruto[TAMANHO_BLOCO:]
 
-    blocos_decifrados = []
-    anterior = iv
-    for i in range(0, len(corpo), TAMANHO_BLOCO):
-        bloco_cifrado = corpo[i:i + TAMANHO_BLOCO]
-        decifrado = _decifrar_bloco(bloco_cifrado, subchaves)
-        original = _xor_bytes(decifrado, anterior)
-        blocos_decifrados.append(original)
-        anterior = bloco_cifrado
+        blocos_decifrados = []
+        anterior = iv
+        for i in range(0, len(corpo), TAMANHO_BLOCO):
+            bloco_cifrado = corpo[i:i + TAMANHO_BLOCO]
+            decifrado = _decifrar_bloco(bloco_cifrado, subchaves)
+            original = _xor_bytes(decifrado, anterior)
+            blocos_decifrados.append(original)
+            anterior = bloco_cifrado
 
-    dados = _remover_padding(b''.join(blocos_decifrados))
-    return dados.decode('utf-8')
+        dados = _remover_padding(b''.join(blocos_decifrados))
+        return dados.decode('utf-8')
+    except Exception as exc:
+        logger.warning('falha_decriptografia motivo=%s: %s', type(exc).__name__, exc)
+        raise
