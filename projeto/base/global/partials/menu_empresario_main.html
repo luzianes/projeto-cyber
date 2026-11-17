@@ -119,6 +119,7 @@
             <a href="{% url 'cafeterias_empresarios' %}">Minhas cafeterias</a>
             <a href="{% url 'cadastro_cafeteria' %}">Cadastre sua cafeteria</a>
             {% if user.is_authenticated %}
+            <a href="{% url 'esteganografia' %}">Esteganografia LSB</a>
             <form method="POST" action="{% url 'perfil_usuario' %}">
                 {% csrf_token %}
                 <a href="{% url 'perfil_usuario' %}">Meu perfil</a>

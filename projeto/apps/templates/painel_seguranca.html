@@ -13,6 +13,7 @@
     <header class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
         <div>
             <h1 class="h3 mb-1">Painel de segurança</h1>
+            <p class="mb-1"><a href="{% url 'esteganografia' %}">Abrir esteganografia LSB</a></p>
             <p class="texto-secundario mb-0">
                 Ataques à cifra, eventos e anomalias apontadas pela IA · {{ periodo }}
                 {% if not incluir_simulados %}· só eventos reais{% endif %}

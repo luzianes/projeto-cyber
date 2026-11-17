@@ -2,6 +2,7 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
 from . import views_painel
+from . import views_esteganografia
 from .views import *
 
 urlpatterns = [
@@ -47,4 +48,7 @@ urlpatterns = [
     path('editar_cadastro_cafeteria_sucesso/', views.editar_cadastro_cafeteria_sucesso, name='editar_cadastro_cafeteria_sucesso'),
     path('cafeteria/<int:cafe_id>/editar/', editar_cadastro_cafe, name='editar_cadastro'),
     path('painel-seguranca/', views_painel.painel_seguranca, name='painel_seguranca'),
+    path('esteganografia/', views_esteganografia.esteganografia, name='esteganografia'),
+    path('esteganografia/ocultar/', views_esteganografia.ocultar, name='esteganografia_ocultar'),
+    path('esteganografia/extrair/', views_esteganografia.extrair, name='esteganografia_extrair'),
 ]
