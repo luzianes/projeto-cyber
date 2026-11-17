@@ -1,0 +1,24 @@
+# Esteganografia LSB + cifra da mensageria (v2): capacidade, qualidade visual e extração
+$ python manage.py demonstrar_esteganografia --saida ../evidencias/09-esteganografia/
+== Imagem de capa ==
+img-home-cliente.png: 3024 x 920 px, RGB, 589 KiB
+Capacidade: 8.346.240 bits menos significativos (3 por pixel) = 1.043.236 bytes úteis, descontado o cabeçalho de 44 bytes
+
+== Ocultação (cifra v2 + envelope autenticado + LSB) ==
+mensagem       texto    oculto      uso  amostras alteradas        MSE      PSNR    tempo
+curta             97       301   0,033%          1.345 (±1)   0,000161   86,1 dB   139 ms
+longa         63.583    84.929   8,145%        339.375 (±1)   0,040662   62,0 dB   451 ms
+cheia*     1.043.236 1.043.236     100%      4.174.058 (±1)   0,500112   51,1 dB
+* capacidade inteira preenchida direto na camada LSB, para medir o pior caso de qualidade.
+PSNR acima de ~40 dB é considerado imperceptível; cada amostra RGB muda no máximo 1 unidade (de 0 a 255).
+
+== Extração (mensagem curta) ==
+OK   com a chave certa                              -> mensagem recuperada (idêntica)
+OK   sem chave                                      -> texto cifrado recuperado, sem decifrar (idêntico ao oculto)
+OK   com outra chave                                -> recusada: autenticacao_invalida
+OK   1 bit alterado na imagem                       -> recusada: integridade_invalida
+OK   recomprimida em JPEG (qualidade 95)            -> recusada: sem_dados
+OK   redimensionada em 1 pixel                      -> recusada: integridade_invalida
+
+Comparação salva em ../evidencias/09-esteganografia/comparacao.jpg (de cima para baixo: original, com a mensagem longa, diferença ampliada)
+(conferência das métricas da mensagem longa: MSE 0,040662, PSNR 62,0 dB)

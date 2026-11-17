@@ -239,11 +239,15 @@ class MensagemPrivada(models.Model):
     -- rede de substituição-permutação feita à mão, com chave dinâmica).
     Diferente da criptografia Fernet usada nos demais campos do app: esta
     existe especificamente para o exercício de cripto/ataques do Projeto 2.
+
+    A chave de cada mensagem fica cifrada em repouso (EncryptedCharField,
+    Fernet com a FIELD_ENCRYPTION_KEY, que vive fora do banco). Antes ela era
+    gravada em claro ao lado do texto cifrado: quem lia o banco decifrava tudo.
     """
     remetente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='mensagens_enviadas')
     cafe = models.ForeignKey(Cafe, on_delete=models.CASCADE, related_name='mensagens_recebidas')
     texto_cifrado = models.TextField()
-    chave = models.CharField(max_length=255)
+    chave = EncryptedCharField()
     enviada_em = models.DateTimeField(auto_now_add=True)
     lida = models.BooleanField(default=False)
 

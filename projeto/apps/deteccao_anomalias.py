@@ -115,9 +115,10 @@ def detectar(linhas, contaminacao=CONTAMINACAO, semente=SEMENTE):
       score (0 a 1, ou None se a janela não foi ao modelo), pred_modelo, pred_regra,
       regras (motivos disparados), motivo, descricao e destaques (as features que
       mais pesaram: {feature: {valor, mediana}} do modelo ou {valor, limiar} da regra).
-    """
-    import numpy as np
 
+    numpy/scikit-learn só são importados quando há janelas para o modelo: a
+    camada de regras funciona sem o requirements-ia.txt instalado.
+    """
     n = len(linhas)
     resultados = [{'anomala': False, 'metodo': '', 'score': None, 'pred_modelo': False,
                    'pred_regra': False, 'regras': [], 'motivo': '', 'descricao': '',
@@ -127,6 +128,8 @@ def detectar(linhas, contaminacao=CONTAMINACAO, semente=SEMENTE):
             'contaminacao': contaminacao}
 
     if len(ativas) >= MIN_JANELAS_MODELO:
+        import numpy as np
+
         IsolationForest = _importar_isolation_forest()
         X = _matriz([linhas[i] for i in ativas])
         modelo = IsolationForest(n_estimators=N_ARVORES, contamination=contaminacao,

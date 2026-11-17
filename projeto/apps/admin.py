@@ -17,9 +17,11 @@ register_model(admin.site, ReservaCafe)
 register_model(admin.site, Avaliacao)
 
 class MensagemPrivadaAdmin(admin.ModelAdmin):
-    
+    # A chave da mensagem nunca aparece no admin: com ela e o texto cifrado,
+    # qualquer pessoa com acesso ao admin leria as mensagens privadas.
     list_display = ('remetente', 'cafe', 'enviada_em', 'lida', 'texto_cifrado')
-    readonly_fields = ('texto_cifrado', 'chave', 'remetente', 'cafe', 'enviada_em')
+    readonly_fields = ('texto_cifrado', 'remetente', 'cafe', 'enviada_em')
+    exclude = ('chave',)
 
 if MensagemPrivada not in admin.site._registry:
     admin.site.register(MensagemPrivada, MensagemPrivadaAdmin)

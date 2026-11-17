@@ -33,7 +33,9 @@ def _validar_chave(chave):
         return dados
     except (ValueError, AttributeError, UnicodeError, binascii.Error):
         raise ErroEsteganografia(
-            'chave_invalida', 'Informe uma chave válida da mensageria: 8 bytes em Base64 URL-safe (12 caracteres).'
+            'chave_invalida',
+            f'Informe uma chave válida da mensageria: {cripto.TAMANHO_CHAVE} bytes em Base64 URL-safe '
+            f'({4 * ((cripto.TAMANHO_CHAVE + 2) // 3)} caracteres).',
         ) from None
 
 
@@ -48,9 +50,8 @@ def _envelope(cifrado, autenticacao):
 
 
 def _tamanho_envelope(bytes_mensagem):
-    blocos_bytes = (bytes_mensagem // cripto.TAMANHO_BLOCO + 1) * cripto.TAMANHO_BLOCO
-    tamanho_cifrado = 4 * ((cripto.TAMANHO_BLOCO + blocos_bytes + 2) // 3)
-    return len(_envelope('', '0' * 64)) + tamanho_cifrado
+    # O tamanho do texto cifrado vem da própria cifra (IV + blocos + tag).
+    return len(_envelope('', '0' * 64)) + cripto.tamanho_cifrado(bytes_mensagem)
 
 
 def _metricas(imagem, payload_bytes=0):

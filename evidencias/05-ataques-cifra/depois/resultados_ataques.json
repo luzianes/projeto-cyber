@@ -1,0 +1,495 @@
+{
+  "diferencial": {
+    "cifra": "v2",
+    "tamanho_bloco": 16,
+    "texto": {
+      "bits_alterados_media": 63.98,
+      "percentual_bits": 49.98,
+      "bytes_alterados_max": 16,
+      "bytes_alterados_min": 13,
+      "mapa_entrada_saida": [
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      ],
+      "bytes_que_nao_mudam_de_posicao": []
+    },
+    "chave": {
+      "bits_alterados_media": 64.05,
+      "percentual_bits": 50.04,
+      "bytes_alterados_max": 16
+    },
+    "mensagem_cbc": {
+      "percentual_bits": 50.27,
+      "bytes_alterados_max_por_bloco": 16,
+      "blocos_anteriores_intactos": true
+    },
+    "ingenuo_iv_aleatorio": {
+      "percentual_bits": 50.01
+    },
+    "sbox": {
+      "uniformidade_diferencial": 14,
+      "probabilidade": 0.0547,
+      "referencia_aes": 4
+    },
+    "maleabilidade": {
+      "original": "Para 2 pessoas, sábado às 20h.",
+      "adulterado": null,
+      "maleavel": false,
+      "rejeitada": true
+    },
+    "tem_avalanche": true,
+    "vulnerabilidade_encontrada": false,
+    "resumo": {
+      "cifra": "v2",
+      "amostras": 200,
+      "percentual_bits_texto": 49.98,
+      "percentual_bits_chave": 50.04,
+      "ideal_percentual": 50.0,
+      "bytes_alterados_max_por_bloco": 16,
+      "bytes_alterados_min_por_bloco": 13,
+      "tamanho_bloco": 16,
+      "percentual_ingenuo_iv_aleatorio": 50.01,
+      "sbox_uniformidade_diferencial": 14,
+      "tem_avalanche": true,
+      "maleavel": false
+    },
+    "duracao_ms": 3623.513,
+    "evento_id": null,
+    "registrado": false
+  },
+  "forca_bruta": {
+    "cifra": "v2",
+    "estimativa": {
+      "espaco_chaves_bits": 128,
+      "espaco_chaves": 340282366920938463463374607431768211456,
+      "taxa_chaves_por_s": 61953,
+      "anos_pior_caso": 1.740496100058336e+26,
+      "anos_caso_medio": 8.70248050029168e+25,
+      "minimo_recomendado_bits": 128
+    },
+    "reduzida": {
+      "bits_desconhecidos": 16,
+      "espaco": 65536,
+      "tentativas": 11481,
+      "tempo_s": 0.178,
+      "quebrou": true,
+      "texto_recuperado": "Oi! Posso levar meu cachorro para a área externa? Obrigado!"
+    },
+    "dividir_conquistar": {
+      "aplicavel": false,
+      "motivo": "cada byte de entrada afeta todos os 16 bytes do bloco cifrado, então não há bytes independentes para atacar separadamente",
+      "bytes_texto_conhecido": 37,
+      "candidatos_por_posicao": [],
+      "chaves_coerentes": 0,
+      "tempo_s": 0.0,
+      "quebrou": false,
+      "texto_recuperado": null
+    },
+    "vulnerabilidade_encontrada": false,
+    "resumo": {
+      "cifra": "v2",
+      "espaco_chaves_bits": 128,
+      "taxa_chaves_por_s": 61953,
+      "anos_estimados_caso_medio": 8.7e+25,
+      "reduzida_bits": 16,
+      "reduzida_tentativas": 11481,
+      "reduzida_quebrou": true,
+      "dividir_conquistar_aplicavel": false,
+      "dividir_conquistar_quebrou": false,
+      "bytes_texto_conhecido": 37,
+      "dividir_conquistar_s": 0.0
+    },
+    "duracao_ms": 253.298,
+    "evento_id": null,
+    "registrado": false
+  },
+  "estatistico": {
+    "cifra": "v2",
+    "texto_claro": {
+      "bytes": 130747,
+      "valores_distintos": 55,
+      "entropia_bits_por_byte": 4.5805,
+      "qui_quadrado": 1960357.9,
+      "p_valor": 0.0,
+      "mais_comuns_pct": [
+        [
+          " ",
+          15.05
+        ],
+        [
+          "a",
+          9.9
+        ],
+        [
+          "o",
+          8.48
+        ],
+        [
+          "e",
+          7.76
+        ],
+        [
+          "r",
+          5.76
+        ]
+      ]
+    },
+    "texto_cifrado": {
+      "bytes": 148432,
+      "valores_distintos": 256,
+      "entropia_bits_por_byte": 7.9988,
+      "qui_quadrado": 249.2,
+      "p_valor": 0.590682638850246,
+      "mais_comuns_pct": [
+        [
+          "0xed",
+          0.44
+        ],
+        [
+          "I",
+          0.43
+        ],
+        [
+          "0x82",
+          0.43
+        ],
+        [
+          "0x1b",
+          0.43
+        ],
+        [
+          "+",
+          0.42
+        ]
+      ]
+    },
+    "uniforme": true,
+    "blocos_repetidos": {
+      "blocos_iguais_no_texto": 8,
+      "distintos_com_cbc": 8,
+      "distintos_sem_cbc": 1
+    },
+    "mesma_mensagem_duas_vezes_pct_bytes_iguais": 0.89,
+    "tamanho": {
+      "correlacao_tamanho_claro_cifrado": 0.8503,
+      "mensagens_com_tamanho_deduzido": 2000,
+      "incerteza_bytes": 16
+    },
+    "vulnerabilidade_encontrada": false,
+    "resumo": {
+      "cifra": "v2",
+      "mensagens": 2000,
+      "bytes_analisados": 148432,
+      "entropia_claro": 4.5805,
+      "entropia_cifrado": 7.9988,
+      "qui2_cifrado": 249.2,
+      "p_valor_cifrado": 0.5907,
+      "uniforme": true,
+      "blocos_distintos_com_cbc": 8,
+      "blocos_distintos_sem_cbc": 1,
+      "vaza_tamanho": true
+    },
+    "duracao_ms": 577.125,
+    "evento_id": null,
+    "registrado": false
+  },
+  "veredito": {
+    "cifra": "v2",
+    "tem_avalanche": true,
+    "seguro": true,
+    "motivos": [
+      "Tem efeito avalanche: inverter 1 bit do texto muda em média 50,0% dos bits do bloco (ideal: ~50%), alterando de 13 a 16 dos 16 bytes; inverter 1 bit da chave muda 50,0%.",
+      "O atalho de atacar byte a byte não se aplica: cada byte de entrada afeta todos os 16 bytes do bloco cifrado, então não há bytes independentes para atacar separadamente.",
+      "Força bruta inviável: 2^128 chaves, ~8,7 × 10^25 anos em média na taxa medida.",
+      "Autenticada: a alteração de 1 byte do texto cifrado foi detectada e a mensagem, rejeitada.",
+      "A análise de frequência não funciona: os bytes cifrados são uniformes (entropia 7,999 bits/byte, p = 0,591).",
+      "Ressalva: resistir a estes ataques não prova que a cifra é segura. Uma cifra própria não passou pelos anos de análise pública do AES; para dado real, o recomendado continua sendo AES-GCM ou Fernet."
+    ]
+  }
+}

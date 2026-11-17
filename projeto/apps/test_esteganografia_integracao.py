@@ -2,7 +2,7 @@
 import base64
 import json
 import tempfile
-from io import BytesIO
+from io import BytesIO, StringIO
 from pathlib import Path
 from unittest import mock
 
@@ -21,8 +21,8 @@ from .esteganografia import (
 from .models import EventoSeguranca
 
 
-CHAVE = base64.urlsafe_b64encode(b'01234567').decode('ascii')
-OUTRA_CHAVE = base64.urlsafe_b64encode(b'76543210').decode('ascii')
+CHAVE = base64.urlsafe_b64encode(b'0123456789abcdef').decode('ascii')
+OUTRA_CHAVE = base64.urlsafe_b64encode(b'fedcba9876543210').decode('ascii')
 MENSAGEM = '  Olá, Recife! ☕\n漢字 e emoji 🔐\x00fim  \n'
 
 
@@ -78,7 +78,8 @@ class FluxoEsteganografiaTests(TestCase):
     def test_rejeita_chaves_malformadas_antes_da_cifra(self):
         invalidas = ('nao-e-uma-chave', '!', 'á' * 12,
                      base64.urlsafe_b64encode(b'curta').decode(),
-                     base64.urlsafe_b64encode(b'012345678').decode())
+                     base64.urlsafe_b64encode(b'012345678').decode(),
+                     base64.urlsafe_b64encode(b'01234567').decode())  # formato da cifra v1 (64 bits)
         with mock.patch.object(mc, 'cifrar') as cifrar:
             for chave in invalidas:
                 with self.subTest(chave=chave), self.assertRaises(ErroEsteganografia):
@@ -351,3 +352,26 @@ class InterfaceEsteganografiaTests(TestCase):
         evento = EventoSeguranca.objects.filter(tipo='esteganografia', sucesso=False).get()
         self.assertNotIn(segredo, json.dumps(evento.detalhes))
         self.assertNotIn(CHAVE, json.dumps(evento.detalhes))
+
+
+class DemonstracaoTests(TestCase):
+    """Comando que mede a esteganografia (evidencias/09-esteganografia)."""
+
+    def test_mede_e_todas_as_extracoes_se_comportam_como_esperado(self):
+        import random
+        from django.core.management import call_command
+        rng = random.Random(1)
+        imagem = Image.new('RGB', (240, 180))
+        imagem.putdata([tuple(rng.randrange(256) for _ in range(3)) for _ in range(240 * 180)])
+        with tempfile.TemporaryDirectory() as pasta:
+            caminho = Path(pasta) / 'capa.png'
+            imagem.save(caminho)
+            saida = StringIO()
+            call_command('demonstrar_esteganografia', imagem=str(caminho), saida=pasta, stdout=saida)
+            self.assertTrue((Path(pasta) / 'comparacao.jpg').exists())
+        texto = saida.getvalue()
+        self.assertNotIn('FALHOU', texto)
+        self.assertEqual(texto.count('OK '), 6)
+        self.assertIn('mensagem recuperada (idêntica)', texto)
+        self.assertFalse(EventoSeguranca.objects.exists())  # medição não gera eventos
+

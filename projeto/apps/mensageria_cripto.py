@@ -2,44 +2,53 @@
 Cifra simétrica própria do Projeto 2, usada na mensageria privada
 cliente -> cafeteria.
 
-DESENHO (rede de substituição-permutação, remontando o que faz a AES, mas de forma simplificada):
+VERSÃO 2: corrigida a partir dos ataques da Pessoa 2 (docs/ATAQUES_CIFRA.md).
+A v1 original continua em cifra_v1_legada.py, só para migrar mensagens
+antigas e reproduzir os ataques do "antes".
 
-  texto (utf-8) -> blocos de 8 bytes (com padding PKCS7)
-      -> encadeamento entre blocos (estilo CBC, com IV aleatório)
-          -> para cada bloco, N rodadas de:
-                 XOR com a sub-chave da rodada (confusão com a chave)
-                 substituição byte-a-byte via S-box fixa    (confusão)
-                 permutação da ordem dos bytes no bloco     (difusão)
-      -> IV + blocos cifrados, tudo em base64 (string, pra caber no banco)
+DESENHO (rede de substituição-permutação no estilo do AES, simplificada):
 
-Peças do requisito (Parte 2, slide 7):
-  - "Chave não pode ser fixa": gerar_chave() sorteia bytes novos a cada
-    chamada -- cada mensagem usa uma chave diferente.
-  - "XOR / Substituição / Permutação / Blocos": presentes explicitamente
-    nas rodadas acima.
-  - "Difusão/Confusão": confusão vem do XOR+S-box (não-linear); difusão
-    vem da permutação dentro do bloco e do encadeamento entre blocos
-    (um bit alterado no início deveria afetar todos os blocos seguintes).
+  texto (utf-8) -> blocos de 16 bytes (padding PKCS7)
+      -> encadeamento CBC com IV aleatório de 16 bytes
+          -> para cada bloco, 10 rodadas de:
+                 XOR com a sub-chave da rodada             (chave)
+                 substituição byte a byte via S-box fixa   (confusão)
+                 permutação da ordem dos bytes (P-box)     (difusão entre colunas)
+                 mistura de colunas (MixColumns)           (difusão entre bytes)
+             e um XOR final com uma 11ª sub-chave
+      -> HMAC-SHA256 sobre IV + blocos (autenticação, "encrypt-then-MAC")
+      -> base64(IV + blocos + tag), string pra caber no banco
 
-O S-box e o P-box são FIXOS e públicos (não são segredo -- no AES de
-verdade também são públicos; quem protege os dados é só a chave). Isso é
-proposital: facilita implementar decifrar() como o inverso exato de
-cifrar(), que é onde a maioria dos bugs desse tipo de exercício acontece.
+Peças do requisito (Parte 2, slide 7): chave dinâmica (gerar_chave() sorteia
+uma chave nova por mensagem), XOR, substituição, permutação e blocos.
 
-PARA QUEM FOR MEXER (Pessoa 2 - ataques):
-  - Força bruta: a chave tem 8 bytes (2^64 possibilidades) -- buscar
-    exaustivamente por todas é inviável de rodar de verdade. Duas opções
-    pro trabalho: (a) CALCULAR o espaço de chaves e o tempo estimado pra
-    testar tudo (o PDF aceita "testar OU calcular"), ou (b) demonstrar o
-    MÉTODO de força bruta usando uma chave artificialmente menor (ex:
-    truncar pra 2 bytes só na hora do teste) pra conseguir rodar de fato
-    em tempo razoável.
-  - Diferencial: mude 1 byte do texto de entrada (mesma chave) e compare
-    os dois resultados de cifrar() -- compare byte a byte / bit a bit.
-  - Estatístico: rode cifrar() em textos variados e olhe a distribuição
-    de frequência dos bytes do resultado (antes do base64).
+O QUE OS ATAQUES ACHARAM NA V1 E O QUE MUDOU:
+
+  v1                                              v2
+  ----------------------------------------------  -------------------------------------------
+  P-box só trocava bytes de lugar: cada byte      MixColumns: cada byte da coluna passa a
+  cifrado dependia de 1 byte de entrada (6% de    depender dos 4; com a P-box, em 2 rodadas
+  avalanche, cifra = 8 cifras de 1 byte)          1 byte de entrada afeta o bloco inteiro
+  chave de 64 bits, recuperada em ~1 s byte a     chave de 128 bits; sem bytes independentes,
+  byte com 24 bytes de texto conhecido            o ataque byte a byte não se aplica
+  sub-chaves = rotações da chave                  sub-chaves derivadas por HMAC-SHA256
+  4 rodadas, terminando em S-box pública          10 rodadas + XOR final com sub-chave
+  sem autenticação: dava pra trocar "2 pessoas"   HMAC-SHA256 conferido ANTES de decifrar:
+  por "9 pessoas" sem a chave                     qualquer alteração é rejeitada
+  bloco de 8 bytes                                bloco de 16 bytes
+
+S-box e P-box continuam fixas e públicas (como no AES): quem protege os dados
+é só a chave. A S-box é a mesma da v1 (permutação sorteada com semente 42).
+
+A chave de cada mensagem é guardada cifrada no banco (MensagemPrivada.chave é
+um EncryptedCharField, protegido pela FIELD_ENCRYPTION_KEY, fora do banco).
+
+Para atacar: `python manage.py rodar_ataques` (ver ataques_cripto.py).
 """
 import base64
+import binascii
+import hashlib
+import hmac
 import logging
 import os
 import random
@@ -48,18 +57,21 @@ from .eventos import agora_ms, registrar_evento
 
 logger = logging.getLogger('security')
 
-TAMANHO_BLOCO = 8  # bytes
-TAMANHO_CHAVE = 8  # bytes -- ver nota de força bruta acima
-NUM_RODADAS = 4
+VERSAO = 'v2'
+TAMANHO_BLOCO = 16  # bytes
+TAMANHO_CHAVE = 16  # bytes (128 bits)
+NUM_RODADAS = 10
+TAMANHO_TAG = 32    # HMAC-SHA256
+_DOMINIO = b'aponte-mensageria-v2'
 
 
-# --- S-box fixa (substituição) ---------------------------------------
-# Permutação fixa e pública dos 256 valores possíveis de 1 byte. Gerada
-# uma única vez com uma semente fixa 
+# --- S-box fixa (substituição) -----------------------------------------
+# Permutação fixa e pública dos 256 valores de 1 byte (semente fixa).
 def _gerar_sbox():
     valores = list(range(256))
     random.Random(42).shuffle(valores)
     return valores
+
 
 _SBOX = _gerar_sbox()
 _SBOX_INV = [0] * 256
@@ -67,32 +79,93 @@ for _i, _v in enumerate(_SBOX):
     _SBOX_INV[_v] = _i
 
 
-# --- P-box fixa (permutação da ordem dos bytes dentro do bloco) ------
-_PBOX = [3, 0, 4, 1, 7, 2, 6, 5]  # permutação fixa de 8 posições
+# --- P-box fixa (permutação dos bytes do bloco) -------------------------
+# O bloco é visto como uma matriz 4x4 guardada coluna a coluna (byte i =
+# linha i % 4, coluna i // 4) e a linha r gira r posições, como o ShiftRows
+# do AES. Assim os 4 bytes de cada coluna vão para 4 colunas diferentes, e o
+# MixColumns da rodada seguinte mistura bytes que vieram de colunas distintas.
+_PBOX = [4 * ((i // 4 + i % 4) % 4) + i % 4 for i in range(TAMANHO_BLOCO)]
 _PBOX_INV = [0] * TAMANHO_BLOCO
 for _i, _v in enumerate(_PBOX):
     _PBOX_INV[_v] = _i
 
 
+# --- Mistura de colunas (MixColumns, multiplicação em GF(2^8)) ----------
+def _gmul(a, b):
+    """Multiplicação no corpo GF(2^8) do AES (polinômio x^8+x^4+x^3+x+1)."""
+    produto = 0
+    while b:
+        if b & 1:
+            produto ^= a
+        a = ((a << 1) ^ 0x11B) if a & 0x80 else a << 1
+        b >>= 1
+    return produto
+
+
+_MUL = {k: [_gmul(x, k) for x in range(256)] for k in (2, 3, 9, 11, 13, 14)}
+
+
+def _misturar_colunas(bloco):
+    """Cada byte de saída da coluna depende dos 4 bytes de entrada dela. A
+    matriz é MDS: mudar 1 byte de entrada muda os 4 de saída."""
+    m2, m3 = _MUL[2], _MUL[3]
+    saida = bytearray(TAMANHO_BLOCO)
+    for c in range(0, TAMANHO_BLOCO, 4):
+        a0, a1, a2, a3 = bloco[c:c + 4]
+        saida[c] = m2[a0] ^ m3[a1] ^ a2 ^ a3
+        saida[c + 1] = a0 ^ m2[a1] ^ m3[a2] ^ a3
+        saida[c + 2] = a0 ^ a1 ^ m2[a2] ^ m3[a3]
+        saida[c + 3] = m3[a0] ^ a1 ^ a2 ^ m2[a3]
+    return bytes(saida)
+
+
+def _desmisturar_colunas(bloco):
+    m9, m11, m13, m14 = _MUL[9], _MUL[11], _MUL[13], _MUL[14]
+    saida = bytearray(TAMANHO_BLOCO)
+    for c in range(0, TAMANHO_BLOCO, 4):
+        a0, a1, a2, a3 = bloco[c:c + 4]
+        saida[c] = m14[a0] ^ m11[a1] ^ m13[a2] ^ m9[a3]
+        saida[c + 1] = m9[a0] ^ m14[a1] ^ m11[a2] ^ m13[a3]
+        saida[c + 2] = m13[a0] ^ m9[a1] ^ m14[a2] ^ m11[a3]
+        saida[c + 3] = m11[a0] ^ m13[a1] ^ m9[a2] ^ m14[a3]
+    return bytes(saida)
+
+
+# --- chave ---------------------------------------------------------------
 def gerar_chave():
-    """Chave dinâmica: bytes aleatórios novos a cada chamada (requisito:
-    'não pode ser fixa'). Retorna como string base64 (pra caber no
-    campo CharField do model)."""
-    return base64.urlsafe_b64encode(os.urandom(TAMANHO_CHAVE)).decode('utf-8')
+    """Chave dinâmica: 16 bytes aleatórios novos a cada chamada (requisito:
+    'não pode ser fixa'). Retorna como string base64 URL-safe."""
+    return base64.urlsafe_b64encode(os.urandom(TAMANHO_CHAVE)).decode('ascii')
+
+
+def _chave_bytes(chave):
+    try:
+        dados = base64.urlsafe_b64decode(chave.encode('ascii'))
+    except (binascii.Error, UnicodeEncodeError, AttributeError):
+        raise ValueError('chave inválida: não é base64') from None
+    if len(dados) != TAMANHO_CHAVE:
+        raise ValueError(f'chave inválida: esperados {TAMANHO_CHAVE} bytes, recebidos {len(dados)}')
+    return dados
+
+
+def _derivar(chave_bytes, rotulo):
+    return hmac.new(chave_bytes, _DOMINIO + b'|' + rotulo, hashlib.sha256).digest()
 
 
 def _subchaves(chave_bytes):
-    """Deriva uma sub-chave diferente para cada rodada, a partir da
-    chave principal (rotaciona os bytes -- não é criptograficamente
-    sofisticado, só precisa variar a cada rodada)."""
-    subchaves = []
-    for rodada in range(NUM_RODADAS):
-        deslocamento = rodada % len(chave_bytes)
-        sub = chave_bytes[deslocamento:] + chave_bytes[:deslocamento]
-        subchaves.append(sub)
-    return subchaves
+    """NUM_RODADAS + 1 sub-chaves de 16 bytes, derivadas da chave por
+    HMAC-SHA256 com um rótulo por rodada. Diferente da v1 (rotações da mesma
+    chave), descobrir uma sub-chave não revela as outras nem a chave."""
+    return [_derivar(chave_bytes, b'rodada' + bytes([r]))[:TAMANHO_BLOCO]
+            for r in range(NUM_RODADAS + 1)]
 
 
+def _chave_mac(chave_bytes):
+    """Chave do HMAC, separada das sub-chaves de cifragem."""
+    return _derivar(chave_bytes, b'mac')
+
+
+# --- rodadas ---------------------------------------------------------------
 def _xor_bytes(a, b):
     return bytes(x ^ y for x, y in zip(a, b))
 
@@ -102,119 +175,123 @@ def _substituir(bloco, tabela):
 
 
 def _permutar(bloco, tabela):
+    # saida[i] = entrada[tabela[i]]; com a tabela inversa, desfaz a permutação.
     return bytes(bloco[tabela[i]] for i in range(len(bloco)))
-
-
-def _permutar_inverso(bloco, tabela_inv):
-    # Mesmo formato de _permutar(), só que com a tabela invertida --
-    # "ler da posição tabela_inv[i]" desfaz exatamente "ler da posição
-    # tabela[i]" feito na cifragem. (Um `saida[tabela_inv[i]] = valor`
-    # parece o jeito "óbvio" de inverter, mas inverte errado -- é a
-    # direção oposta do que o índice realmente representa.)
-    return bytes(bloco[tabela_inv[i]] for i in range(len(bloco)))
 
 
 def _cifrar_bloco(bloco, subchaves):
     estado = bloco
-    for sub in subchaves:
+    for sub in subchaves[:-1]:
         estado = _xor_bytes(estado, sub)
         estado = _substituir(estado, _SBOX)
         estado = _permutar(estado, _PBOX)
-    return estado
+        estado = _misturar_colunas(estado)
+    # XOR final: sem ele, a última rodada poderia ser desfeita por qualquer um
+    # (S-box, P-box e MixColumns são públicas).
+    return _xor_bytes(estado, subchaves[-1])
 
 
 def _decifrar_bloco(bloco, subchaves):
-    estado = bloco
-    for sub in reversed(subchaves):
-        estado = _permutar_inverso(estado, _PBOX_INV)
+    estado = _xor_bytes(bloco, subchaves[-1])
+    for sub in reversed(subchaves[:-1]):
+        estado = _desmisturar_colunas(estado)
+        estado = _permutar(estado, _PBOX_INV)
         estado = _substituir(estado, _SBOX_INV)
         estado = _xor_bytes(estado, sub)
     return estado
 
 
+# --- padding, modo CBC, autenticação ---------------------------------------
 def _aplicar_padding(dados):
-    """PKCS7: completa o último bloco, sempre adiciona pelo menos 1 byte
-    (mesmo se já for múltiplo do tamanho do bloco) para o padding ser
-    removível sem ambiguidade."""
+    """PKCS7: sempre adiciona de 1 a 16 bytes."""
     faltam = TAMANHO_BLOCO - (len(dados) % TAMANHO_BLOCO)
     return dados + bytes([faltam] * faltam)
 
 
 def _remover_padding(dados):
-    # Validação completa do PKCS7 (não só olhar o último byte): com chave
-    # errada, os dados decifrados são lixo -- sem validar isso direito, o
-    # "lixo" às vezes passa batido e devolve algo sem sentido (ex: string
-    # vazia) em vez de erro, escondendo a falha em vez de sinalizá-la.
     if not dados:
         raise ValueError('padding inválido: dados vazios')
     faltam = dados[-1]
-    if faltam < 1 or faltam > TAMANHO_BLOCO or faltam > len(dados):
-        raise ValueError('padding inválido (provável chave incorreta)')
-    if dados[-faltam:] != bytes([faltam]) * faltam:
-        raise ValueError('padding inválido (provável chave incorreta)')
+    if faltam < 1 or faltam > TAMANHO_BLOCO or faltam > len(dados) \
+            or dados[-faltam:] != bytes([faltam]) * faltam:
+        raise ValueError('padding inválido')
     return dados[:-faltam]
 
 
+def _cifrar_cbc(dados, subchaves, iv):
+    """dados já com padding -> blocos cifrados (sem o IV). Cada bloco passa por
+    XOR com o cifrado anterior antes das rodadas (o 1º, com o IV)."""
+    saida, anterior = [], iv
+    for i in range(0, len(dados), TAMANHO_BLOCO):
+        anterior = _cifrar_bloco(_xor_bytes(dados[i:i + TAMANHO_BLOCO], anterior), subchaves)
+        saida.append(anterior)
+    return b''.join(saida)
+
+
+def _tag(chave_bytes, iv, corpo):
+    return hmac.new(_chave_mac(chave_bytes), _DOMINIO + iv + corpo, hashlib.sha256).digest()
+
+
+def _decompor(texto_cifrado):
+    """string base64 -> (iv, blocos cifrados, tag)."""
+    try:
+        bruto = base64.urlsafe_b64decode(texto_cifrado.encode('ascii'))
+    except (binascii.Error, UnicodeEncodeError, AttributeError):
+        raise ValueError('texto cifrado inválido: não é base64') from None
+    corpo = len(bruto) - TAMANHO_BLOCO - TAMANHO_TAG
+    if corpo < TAMANHO_BLOCO or corpo % TAMANHO_BLOCO:
+        raise ValueError('texto cifrado com tamanho inválido')
+    return bruto[:TAMANHO_BLOCO], bruto[TAMANHO_BLOCO:-TAMANHO_TAG], bruto[-TAMANHO_TAG:]
+
+
+def tamanho_cifrado(bytes_texto):
+    """Tamanho, em caracteres, da string que cifrar() devolve para um texto de
+    `bytes_texto` bytes UTF-8 (usado pela esteganografia para checar a
+    capacidade da imagem antes de cifrar)."""
+    bruto = TAMANHO_BLOCO + (bytes_texto // TAMANHO_BLOCO + 1) * TAMANHO_BLOCO + TAMANHO_TAG
+    return 4 * ((bruto + 2) // 3)
+
+
+# --- API ------------------------------------------------------------------
 def cifrar(texto, chave, usuario='', ip=None):
     """texto: str. chave: string base64 (de gerar_chave()).
-    Retorna: string base64 contendo IV + blocos cifrados.
+    Retorna: string base64 com IV + blocos cifrados + tag HMAC.
 
     `usuario`/`ip` são opcionais e só servem para o evento de auditoria."""
     inicio = agora_ms()
-    chave_bytes = base64.urlsafe_b64decode(chave.encode('utf-8'))
-    subchaves = _subchaves(chave_bytes)
-
+    chave_bytes = _chave_bytes(chave)
     dados = _aplicar_padding(texto.encode('utf-8'))
     iv = os.urandom(TAMANHO_BLOCO)
-
-    blocos_cifrados = [iv]
-    anterior = iv
-    for i in range(0, len(dados), TAMANHO_BLOCO):
-        bloco = dados[i:i + TAMANHO_BLOCO]
-        # Encadeamento estilo CBC: XOR com o bloco cifrado anterior antes
-        # de cifrar -- garante que alterar um byte no começo do texto
-        # mude todos os blocos cifrados a partir dali (difusão na
-        # mensagem inteira, não só dentro de 1 bloco).
-        bloco_encadeado = _xor_bytes(bloco, anterior)
-        cifrado = _cifrar_bloco(bloco_encadeado, subchaves)
-        blocos_cifrados.append(cifrado)
-        anterior = cifrado
-
-    resultado = base64.urlsafe_b64encode(b''.join(blocos_cifrados)).decode('utf-8')
+    corpo = _cifrar_cbc(dados, _subchaves(chave_bytes), iv)
+    resultado = base64.urlsafe_b64encode(iv + corpo + _tag(chave_bytes, iv, corpo)).decode('ascii')
     # Só metadados: nunca o texto, a chave nem o texto cifrado.
     registrar_evento(
         'cifragem', usuario=usuario, ip=ip, origem='mensageria_cripto',
         duracao_ms=round(agora_ms() - inicio, 3),
-        detalhes={'bytes_entrada': len(texto.encode('utf-8')),
-                  'blocos': len(blocos_cifrados) - 1, 'rodadas': NUM_RODADAS},
+        detalhes={'bytes_entrada': len(texto.encode('utf-8')), 'blocos': len(corpo) // TAMANHO_BLOCO,
+                  'rodadas': NUM_RODADAS, 'versao': VERSAO},
     )
     return resultado
 
 
 def decifrar(texto_cifrado, chave, usuario='', ip=None):
-    """Levanta a exceção original pra quem chamou (comportamento não muda),
-    mas antes registra a falha no log de segurança -- é esse registro que
-    alimenta a anomalia "frequência elevada de falhas de descriptografia"
-    (Pessoa 5 / Big Data, Pessoa 4) com dado de verdade."""
+    """Confere a autenticação ANTES de decifrar: chave errada ou texto
+    adulterado falham sempre, sem decifrar nada. Levanta a exceção para quem
+    chamou, mas antes registra a falha no log de segurança e na tabela de
+    eventos (alimenta a detecção de "falhas de descriptografia")."""
     inicio = agora_ms()
     try:
-        chave_bytes = base64.urlsafe_b64decode(chave.encode('utf-8'))
+        chave_bytes = _chave_bytes(chave)
+        iv, corpo, tag = _decompor(texto_cifrado)
+        if not hmac.compare_digest(tag, _tag(chave_bytes, iv, corpo)):
+            raise ValueError('autenticação inválida (chave incorreta ou mensagem adulterada)')
         subchaves = _subchaves(chave_bytes)
-
-        bruto = base64.urlsafe_b64decode(texto_cifrado.encode('utf-8'))
-        iv, corpo = bruto[:TAMANHO_BLOCO], bruto[TAMANHO_BLOCO:]
-
-        blocos_decifrados = []
-        anterior = iv
+        blocos, anterior = [], iv
         for i in range(0, len(corpo), TAMANHO_BLOCO):
-            bloco_cifrado = corpo[i:i + TAMANHO_BLOCO]
-            decifrado = _decifrar_bloco(bloco_cifrado, subchaves)
-            original = _xor_bytes(decifrado, anterior)
-            blocos_decifrados.append(original)
-            anterior = bloco_cifrado
-
-        dados = _remover_padding(b''.join(blocos_decifrados))
-        resultado = dados.decode('utf-8')
+            bloco = corpo[i:i + TAMANHO_BLOCO]
+            blocos.append(_xor_bytes(_decifrar_bloco(bloco, subchaves), anterior))
+            anterior = bloco
+        resultado = _remover_padding(b''.join(blocos)).decode('utf-8')
     except Exception as exc:
         logger.warning('falha_decriptografia motivo=%s: %s', type(exc).__name__, exc)
         registrar_evento(
@@ -226,6 +303,23 @@ def decifrar(texto_cifrado, chave, usuario='', ip=None):
     registrar_evento(
         'decifragem', usuario=usuario, ip=ip, origem='mensageria_cripto',
         duracao_ms=round(agora_ms() - inicio, 3),
-        detalhes={'blocos': len(blocos_decifrados)},
+        detalhes={'blocos': len(blocos), 'versao': VERSAO},
     )
     return resultado
+
+
+def migrar_da_v1(texto_cifrado_v1, chave_v1):
+    """Decifra uma mensagem da v1 e a recifra na v2 com uma chave nova.
+    Usado pela migration 0056. Retorna (texto_cifrado_v2, chave_v2)."""
+    from . import cifra_v1_legada
+    texto = cifra_v1_legada.decifrar(texto_cifrado_v1, chave_v1)
+    chave = gerar_chave()
+    return cifrar(texto, chave), chave
+
+
+def migrar_para_v1(texto_cifrado_v2, chave_v2):
+    """Inverso de migrar_da_v1 (só para desfazer a migration 0056)."""
+    from . import cifra_v1_legada
+    texto = decifrar(texto_cifrado_v2, chave_v2)
+    chave = cifra_v1_legada.gerar_chave()
+    return cifra_v1_legada.cifrar(texto, chave), chave

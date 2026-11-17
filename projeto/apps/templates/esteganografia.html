@@ -37,7 +37,7 @@
                     <p class="ajuda" id="limite-mensagem"><span id="contador-mensagem">0</span> / {{ max_mensagem_bytes }} bytes em UTF-8. A capacidade real depende da imagem e inclui a criptografia e os dados de integridade.</p>
                     <label for="chave-ocultar">Chave existente <span class="opcional">(opcional)</span></label>
                     <input id="chave-ocultar" type="password" name="chave" autocomplete="off" spellcheck="false" aria-describedby="ajuda-chave-ocultar">
-                    <p class="ajuda" id="ajuda-chave-ocultar">Deixe em branco para gerar uma chave. Para reutilizar uma, informe a chave Base64 de 8 bytes usada por esta ferramenta.</p>
+                    <p class="ajuda" id="ajuda-chave-ocultar">Deixe em branco para gerar uma chave. Para reutilizar uma, informe a chave Base64 de 16 bytes (24 caracteres) usada por esta ferramenta.</p>
                     <button type="submit">Criptografar e ocultar</button>
                 </form>
                 <p id="status-ocultar" class="status" role="status" aria-live="polite"></p>

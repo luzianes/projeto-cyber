@@ -28,7 +28,7 @@ Cada linha da tabela é um evento. Os tipos existentes e o significado de cada u
 |---|---|---|
 | `cifragem` | a cifra própria cifra uma mensagem | bytes de entrada, nº de blocos, nº de rodadas |
 | `decifragem` | uma mensagem é decifrada com sucesso | nº de blocos |
-| `falha_decifragem` | decifrar falha (chave errada, dado corrompido, padding inválido) | tipo do erro |
+| `falha_decifragem` | decifrar falha (chave errada, mensagem alterada ou dado corrompido: a autenticação HMAC não confere) | tipo do erro |
 | `login_sucesso` | login válido | — |
 | `login_falha` | login recusado | motivo: `senha_incorreta` ou `email_nao_cadastrado` |
 | `login_bloqueado` | login barrado pelo CAPTCHA | motivo: `recaptcha_invalido` |

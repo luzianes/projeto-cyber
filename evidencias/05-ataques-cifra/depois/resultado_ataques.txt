@@ -1,0 +1,47 @@
+# Ataques à cifra da mensageria: depois das correções, cifra v2 corrigida (em uso na mensageria)
+# (--nao-registrar: no banco local as migrations 0054-0056 ainda não foram aplicadas;
+#  o registro dos eventos é coberto por apps/test_ataques.py)
+$ python manage.py rodar_ataques --cifra v2 --nao-registrar --json ../evidencias/05-ataques-cifra/depois/resultados_ataques.json
+Alvo: cifra v2 (em uso na mensageria): bloco de 16 bytes, chave de 128 bits, 10 rodadas, autenticação: HMAC-SHA256
+
+== 1. Ataque diferencial (efeito avalanche) ==
+Inverter 1 bit do TEXTO (mesma chave, mesmo IV): 63,98 de 128 bits mudam (50,0%; ideal ~50%). Bytes alterados no bloco: de 13 a 16 de 16.
+Inverter 1 bit da CHAVE (mesmo texto): 64,05 de 128 bits mudam (50,0%). Máx. de bytes alterados: 16 de 16.
+Byte de entrada -> bytes de saída afetados: cada um dos 16 bytes de entrada afeta os 16 de saída.
+Mensagem de 5 blocos (CBC), 1 bit alterado no 1º bloco: 50,3% dos bits mudam, no máx. 16 byte(s) por bloco. Alterar o último bloco deixa os anteriores intactos: sim (propriedade do CBC).
+Comparação ingênua (cifrar() 2x, IV sorteado a cada vez): 50,0% -> não serve como medida: a diferença vem do IV aleatório.
+S-box: uniformidade diferencial 14 (o melhor diferencial passa com probabilidade 5,5%; no AES: 4).
+Maleabilidade (sem a chave, alterando 1 byte do IV): 'Para 2 pessoas, sábado às 20h.' -> REJEITADA (a autenticação detectou a alteração)
+Efeito avalanche: SIM
+
+== 2. Ataque de força bruta ==
+(a) Chave reduzida a 16 bits (65.536 chaves), só com o texto cifrado: achada em 11.481 tentativas, 0,18 s -> QUEBROU
+    texto recuperado: 'Oi! Posso levar meu cachorro para a área externa? Obrigado!'
+(b) Chave real de 128 bits = 3,4 × 10^38 chaves. Taxa medida: 61.953 chaves/s (decifrar() em Python, 1 núcleo).
+    Tempo estimado: 8,7 × 10^25 anos em média (1,7 × 10^26 no pior caso). Mínimo recomendado hoje: 128 bits.
+(c) Dividir para conquistar (atacar byte a byte): NÃO SE APLICA, cada byte de entrada afeta todos os 16 bytes do bloco cifrado, então não há bytes independentes para atacar separadamente.
+Força bruta: chave não recuperada
+
+== 3. Ataque estatístico (análise de frequência) ==
+Corpus: 2.000 mensagens, cada uma com chave nova.
+Texto claro  : 130.747 bytes, 55 valores distintos, entropia 4,580 bits/byte, qui² = 1.960.357,9 (p = 0,0000)
+               mais frequentes: ' ' 15,05%, 'a' 9,90%, 'o' 8,48%, 'e' 7,76%, 'r' 5,76%
+Texto cifrado: 148.432 bytes, 256 valores distintos, entropia 7,999 bits/byte, qui² = 249,2 (p = 0,5907)
+               mais frequentes: '0xed' 0,44%, 'I' 0,43%, '0x82' 0,43%, '0x1b' 0,43%, '+' 0,42%
+Distribuição do cifrado é uniforme (p > 0,01)? SIM (máximo teórico de entropia: 8 bits/byte)
+8 blocos de texto idênticos -> blocos cifrados distintos: 8 com CBC, 1 sem o encadeamento (o padrão ficaria visível).
+Mesma mensagem e mesma chave cifradas 2x: 0,9% de bytes iguais.
+Vazamento de tamanho: em 2.000 de 2.000 mensagens o tamanho do texto foi deduzido só do cifrado, com margem de 16 bytes.
+Análise de frequência: NÃO quebrou
+
+== Veredito (cifra v2) ==
+Tem efeito avalanche? SIM
+É segura?             SIM, contra os ataques realizados
+  - Tem efeito avalanche: inverter 1 bit do texto muda em média 50,0% dos bits do bloco (ideal: ~50%), alterando de 13 a 16 dos 16 bytes; inverter 1 bit da chave muda 50,0%.
+  - O atalho de atacar byte a byte não se aplica: cada byte de entrada afeta todos os 16 bytes do bloco cifrado, então não há bytes independentes para atacar separadamente.
+  - Força bruta inviável: 2^128 chaves, ~8,7 × 10^25 anos em média na taxa medida.
+  - Autenticada: a alteração de 1 byte do texto cifrado foi detectada e a mensagem, rejeitada.
+  - A análise de frequência não funciona: os bytes cifrados são uniformes (entropia 7,999 bits/byte, p = 0,591).
+  - Ressalva: resistir a estes ataques não prova que a cifra é segura. Uma cifra própria não passou pelos anos de análise pública do AES; para dado real, o recomendado continua sendo AES-GCM ou Fernet.
+
+Resultados salvos em ../evidencias/05-ataques-cifra/depois/resultados_ataques.json

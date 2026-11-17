@@ -1,3 +1,5 @@
+# Execução ORIGINAL (16/11), antes das correções, contra a cifra v1. Reproduzível com:
+#   python manage.py rodar_ataques --cifra v1
 # Execução dos ataques à cifra da mensageria (Pessoa 2)
 # (--nao-registrar: no banco local as migrations 0054/0055 ainda não foram aplicadas;
 #  o registro dos eventos é coberto por apps/test_ataques.py)
