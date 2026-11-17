@@ -1,0 +1,201 @@
+# Avaliação da IA de anomalias (Pessoa 5)
+# Calibração (escolha de contaminação e features): seed 42. Validação: seeds 1 a 5, sem reajuste.
+# Cada rodada: 50.000 eventos normais + 25 incidentes injetados, 14 dias. Hiperparâmetros fixos no código.
+
+################ seed 42 ################
+$ manage.py gerar_eventos_simulados --qtd 50000 --dias 14 --seed 42
+52853 eventos simulados criados (50000 normais + anomalias). Use --limpar para removê-los.
+$ manage.py detectar_anomalias --avaliar --nao-gravar --mostrar 5
+== IA de anomalias ==
+Janelas de 5 min: 41205 | enviadas ao modelo (>= 3 eventos): 1112
+Anomalias: 36
+Nada gravado (--nao-gravar).
+
+Principais alertas (de 36):
+  2026-11-15T18:25  desconhecida     score=  -   regra                  arquivo alterado (SHA-256 não confere)
+  2026-11-07T13:30  203.0.113.94     score=0.746 regra+isolation_forest número incomum de falhas de login
+  2026-11-05T21:40  203.0.113.45     score=0.741 regra+isolation_forest número incomum de falhas de login
+  2026-11-08T17:20  203.0.113.71     score=0.738 regra+isolation_forest número incomum de falhas de login
+  2026-11-07T18:40  203.0.113.10     score=0.729 regra+isolation_forest número incomum de falhas de login
+
+== Avaliação contra o gabarito ==
+Janelas avaliadas: 41205 | anômalas no gabarito: 34
+abordagem           precisão   recall      F1  alertas  falsos+
+regras                 1.000    0.824   0.903       28        0
+isolation_forest       0.765    0.765   0.765       34        8
+hibrido                0.778    0.824   0.800       36        8
+Janelas anômalas que só o Isolation Forest pegou (nenhuma regra disparou): 0
+
+Detectado por cenário (janelas detectadas / total):
+  forca_bruta_login            híbrido   8/8     IF   8  regras   8
+  geracao_incomum_de_eventos   híbrido   5/8     IF   5  regras   5
+  integridade_violada          híbrido   5/5     IF   3  regras   5
+  normal                       híbrido   8/41171 IF   8  regras   0
+  rajada_falha_decifragem      híbrido   5/5     IF   5  regras   5
+  varredura_acesso_negado      híbrido   5/8     IF   5  regras   5
+
+
+################ seed 1 ################
+$ manage.py gerar_eventos_simulados --qtd 50000 --dias 14 --seed 1
+52761 eventos simulados criados (50000 normais + anomalias). Use --limpar para removê-los.
+$ manage.py detectar_anomalias --avaliar --nao-gravar --mostrar 5
+== IA de anomalias ==
+Janelas de 5 min: 41289 | enviadas ao modelo (>= 3 eventos): 1075
+Anomalias: 36
+Nada gravado (--nao-gravar).
+
+Principais alertas (de 36):
+  2026-11-03T13:20  desconhecida     score=  -   regra                  arquivo alterado (SHA-256 não confere)
+  2026-11-08T12:55  desconhecida     score=  -   regra                  arquivo alterado (SHA-256 não confere)
+  2026-11-07T05:55  203.0.113.67     score=0.747 regra+isolation_forest número incomum de falhas de login
+  2026-11-12T10:45  203.0.113.224    score=0.736 regra+isolation_forest número incomum de falhas de login
+  2026-11-16T23:10  203.0.113.156    score=0.736 regra+isolation_forest número incomum de falhas de login
+
+== Avaliação contra o gabarito ==
+Janelas avaliadas: 41289 | anômalas no gabarito: 38
+abordagem           precisão   recall      F1  alertas  falsos+
+regras                 1.000    0.789   0.882       30        0
+isolation_forest       0.844    0.711   0.771       32        5
+hibrido                0.861    0.816   0.838       36        5
+Janelas anômalas que só o Isolation Forest pegou (nenhuma regra disparou): 1
+
+Detectado por cenário (janelas detectadas / total):
+  forca_bruta_login            híbrido   7/8     IF   7  regras   6
+  geracao_incomum_de_eventos   híbrido   5/9     IF   5  regras   5
+  integridade_violada          híbrido   5/5     IF   1  regras   5
+  normal                       híbrido   5/41251 IF   5  regras   0
+  rajada_falha_decifragem      híbrido   7/8     IF   7  regras   7
+  varredura_acesso_negado      híbrido   7/8     IF   7  regras   7
+
+
+################ seed 2 ################
+$ manage.py gerar_eventos_simulados --qtd 50000 --dias 14 --seed 2
+52217 eventos simulados criados (50000 normais + anomalias). Use --limpar para removê-los.
+$ manage.py detectar_anomalias --avaliar --nao-gravar --mostrar 5
+== IA de anomalias ==
+Janelas de 5 min: 41149 | enviadas ao modelo (>= 3 eventos): 1130
+Anomalias: 37
+Nada gravado (--nao-gravar).
+
+Principais alertas (de 37):
+  2026-11-08T20:25  desconhecida     score=  -   regra                  arquivo alterado (SHA-256 não confere)
+  2026-11-10T07:10  203.0.113.183    score=0.747 regra+isolation_forest número incomum de falhas de login
+  2026-11-03T08:40  203.0.113.191    score=0.746 regra+isolation_forest número incomum de falhas de login
+  2026-11-15T10:05  203.0.113.232    score=0.738 regra+isolation_forest número incomum de falhas de login
+  2026-11-13T18:40  203.0.113.70     score=0.735 regra+isolation_forest número incomum de falhas de login
+
+== Avaliação contra o gabarito ==
+Janelas avaliadas: 41149 | anômalas no gabarito: 32
+abordagem           precisão   recall      F1  alertas  falsos+
+regras                 1.000    0.906   0.951       29        0
+isolation_forest       0.794    0.844   0.818       34        7
+hibrido                0.811    0.938   0.870       37        7
+Janelas anômalas que só o Isolation Forest pegou (nenhuma regra disparou): 1
+
+Detectado por cenário (janelas detectadas / total):
+  forca_bruta_login            híbrido   7/8     IF   7  regras   7
+  geracao_incomum_de_eventos   híbrido   6/6     IF   6  regras   5
+  integridade_violada          híbrido   5/5     IF   2  regras   5
+  normal                       híbrido   7/41117 IF   7  regras   0
+  rajada_falha_decifragem      híbrido   6/6     IF   6  regras   6
+  varredura_acesso_negado      híbrido   6/7     IF   6  regras   6
+
+
+################ seed 3 ################
+$ manage.py gerar_eventos_simulados --qtd 50000 --dias 14 --seed 3
+52666 eventos simulados criados (50000 normais + anomalias). Use --limpar para removê-los.
+$ manage.py detectar_anomalias --avaliar --nao-gravar --mostrar 5
+== IA de anomalias ==
+Janelas de 5 min: 41356 | enviadas ao modelo (>= 3 eventos): 1075
+Anomalias: 33
+Nada gravado (--nao-gravar).
+
+Principais alertas (de 33):
+  2026-11-09T22:50  203.0.113.71     score=0.750 regra+isolation_forest número incomum de falhas de login
+  2026-11-09T07:00  203.0.113.164    score=0.742 regra+isolation_forest número incomum de falhas de login
+  2026-11-05T11:40  203.0.113.50     score=0.732 regra+isolation_forest número incomum de falhas de login
+  2026-11-07T09:55  203.0.113.46     score=0.732 regra+isolation_forest número incomum de falhas de login
+  2026-11-14T11:25  203.0.113.191    score=0.728 regra+isolation_forest número incomum de falhas de login
+
+== Avaliação contra o gabarito ==
+Janelas avaliadas: 41356 | anômalas no gabarito: 33
+abordagem           precisão   recall      F1  alertas  falsos+
+regras                 1.000    0.788   0.881       26        0
+isolation_forest       0.806    0.758   0.781       31        6
+hibrido                0.818    0.818   0.818       33        6
+Janelas anômalas que só o Isolation Forest pegou (nenhuma regra disparou): 1
+
+Detectado por cenário (janelas detectadas / total):
+  forca_bruta_login            híbrido   6/6     IF   6  regras   5
+  geracao_incomum_de_eventos   híbrido   5/9     IF   5  regras   5
+  integridade_violada          híbrido   5/5     IF   4  regras   5
+  normal                       híbrido   6/41323 IF   6  regras   0
+  rajada_falha_decifragem      híbrido   6/6     IF   5  regras   6
+  varredura_acesso_negado      híbrido   5/7     IF   5  regras   5
+
+
+################ seed 4 ################
+$ manage.py gerar_eventos_simulados --qtd 50000 --dias 14 --seed 4
+52816 eventos simulados criados (50000 normais + anomalias). Use --limpar para removê-los.
+$ manage.py detectar_anomalias --avaliar --nao-gravar --mostrar 5
+== IA de anomalias ==
+Janelas de 5 min: 41168 | enviadas ao modelo (>= 3 eventos): 1145
+Anomalias: 40
+Nada gravado (--nao-gravar).
+
+Principais alertas (de 40):
+  2026-11-07T12:05  desconhecida     score=  -   regra                  arquivo alterado (SHA-256 não confere)
+  2026-11-12T15:10  desconhecida     score=  -   regra                  arquivo alterado (SHA-256 não confere)
+  2026-11-15T15:40  desconhecida     score=  -   regra                  arquivo alterado (SHA-256 não confere)
+  2026-11-09T12:55  203.0.113.57     score=0.747 regra+isolation_forest número incomum de falhas de login
+  2026-11-11T17:00  203.0.113.80     score=0.738 regra+isolation_forest número incomum de falhas de login
+
+== Avaliação contra o gabarito ==
+Janelas avaliadas: 41168 | anômalas no gabarito: 39
+abordagem           precisão   recall      F1  alertas  falsos+
+regras                 1.000    0.821   0.901       32        0
+isolation_forest       0.909    0.769   0.833       33        3
+hibrido                0.925    0.949   0.937       40        3
+Janelas anômalas que só o Isolation Forest pegou (nenhuma regra disparou): 5
+
+Detectado por cenário (janelas detectadas / total):
+  forca_bruta_login            híbrido   9/9     IF   9  regras   7
+  geracao_incomum_de_eventos   híbrido   8/8     IF   8  regras   5
+  integridade_violada          híbrido   7/7     IF   0  regras   7
+  normal                       híbrido   3/41129 IF   3  regras   0
+  rajada_falha_decifragem      híbrido   7/7     IF   7  regras   7
+  varredura_acesso_negado      híbrido   6/8     IF   6  regras   6
+
+
+################ seed 5 ################
+$ manage.py gerar_eventos_simulados --qtd 50000 --dias 14 --seed 5
+52882 eventos simulados criados (50000 normais + anomalias). Use --limpar para removê-los.
+$ manage.py detectar_anomalias --avaliar --nao-gravar --mostrar 5
+== IA de anomalias ==
+Janelas de 5 min: 41184 | enviadas ao modelo (>= 3 eventos): 1136
+Anomalias: 37
+Nada gravado (--nao-gravar).
+
+Principais alertas (de 37):
+  2026-11-10T14:05  desconhecida     score=  -   regra                  arquivo alterado (SHA-256 não confere)
+  2026-11-04T17:20  203.0.113.141    score=0.751 regra+isolation_forest número incomum de falhas de login
+  2026-11-16T09:45  203.0.113.196    score=0.747 regra+isolation_forest número incomum de falhas de login
+  2026-11-12T11:50  203.0.113.214    score=0.744 regra+isolation_forest número incomum de falhas de login
+  2026-11-05T14:45  203.0.113.112    score=0.743 regra+isolation_forest número incomum de falhas de login
+
+== Avaliação contra o gabarito ==
+Janelas avaliadas: 41184 | anômalas no gabarito: 38
+abordagem           precisão   recall      F1  alertas  falsos+
+regras                 1.000    0.763   0.866       29        0
+isolation_forest       0.829    0.763   0.794       35        6
+hibrido                0.838    0.816   0.827       37        6
+Janelas anômalas que só o Isolation Forest pegou (nenhuma regra disparou): 2
+
+Detectado por cenário (janelas detectadas / total):
+  forca_bruta_login            híbrido   6/9     IF   6  regras   6
+  geracao_incomum_de_eventos   híbrido   7/9     IF   7  regras   5
+  integridade_violada          híbrido   5/5     IF   3  regras   5
+  normal                       híbrido   6/41146 IF   6  regras   0
+  rajada_falha_decifragem      híbrido   6/7     IF   6  regras   6
+  varredura_acesso_negado      híbrido   7/8     IF   7  regras   7
+

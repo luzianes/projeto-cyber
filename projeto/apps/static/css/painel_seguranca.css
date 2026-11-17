@@ -1,0 +1,139 @@
+/* Painel de segurança. Cores por papel (tokens), com modo escuro próprio. */
+:root {
+    color-scheme: light;
+    --superficie-pagina: #f4f3f0;
+    --superficie-1: #fcfcfb;
+    --borda: #e3e2dd;
+    --grade: #ebeae6;
+    --texto-1: #0b0b0b;
+    --texto-2: #52514e;
+    --serie-1: #2a78d6;
+    --status-bom: #0ca30c;
+    --status-alerta: #fab219;
+    --status-critico: #d03b3b;
+    --status-bom-fundo: #e5f4e5;
+    --status-alerta-fundo: #fdf1d6;
+    --status-critico-fundo: #f9e3e3;
+}
+@media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+        color-scheme: dark;
+        --superficie-pagina: #111110;
+        --superficie-1: #1a1a19;
+        --borda: #2e2e2c;
+        --grade: #2a2a28;
+        --texto-1: #f0efec;
+        --texto-2: #c3c2b7;
+        --serie-1: #3987e5;
+        --status-bom-fundo: #12301a;
+        --status-alerta-fundo: #3a2f12;
+        --status-critico-fundo: #3d1b1b;
+    }
+}
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --superficie-pagina: #111110;
+    --superficie-1: #1a1a19;
+    --borda: #2e2e2c;
+    --grade: #2a2a28;
+    --texto-1: #f0efec;
+    --texto-2: #c3c2b7;
+    --serie-1: #3987e5;
+    --status-bom-fundo: #12301a;
+    --status-alerta-fundo: #3a2f12;
+    --status-critico-fundo: #3d1b1b;
+}
+
+/* ---- Base e utilitários de layout (subconjunto do vocabulário do Bootstrap,
+   sem depender do CDN, que a CSP do projeto bloqueia para CSS) ---- */
+*, *::before, *::after { box-sizing: border-box; }
+body.painel {
+    margin: 0;
+    background: var(--superficie-pagina);
+    color: var(--texto-1);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 15px;
+    line-height: 1.45;
+}
+.painel h1, .painel h2, .painel h3 { margin-top: 0; font-weight: 600; line-height: 1.25; }
+.h3 { font-size: 1.6rem; } .h5 { font-size: 1.15rem; } .h6 { font-size: 0.98rem; }
+.small { font-size: 0.85rem; }
+.painel p { margin-top: 0; }
+.container-xl { max-width: 1280px; margin: 0 auto; padding-left: 16px; padding-right: 16px; }
+.py-4 { padding-top: 24px; padding-bottom: 24px; }
+.mb-0 { margin-bottom: 0 !important; } .mb-1 { margin-bottom: 4px; } .mb-2 { margin-bottom: 8px; }
+.mb-3 { margin-bottom: 16px; } .mb-4 { margin-bottom: 24px; } .mt-0 { margin-top: 0; } .mt-1 { margin-top: 4px; }
+.d-flex { display: flex; } .flex-wrap { flex-wrap: wrap; }
+.align-items-end { align-items: flex-end; } .align-items-center { align-items: center; }
+.align-items-start { align-items: flex-start; } .justify-content-between { justify-content: space-between; }
+.gap-2 { gap: 8px; } .gap-3 { gap: 16px; }
+.h-100 { height: 100%; } .text-end { text-align: right; } .text-nowrap { white-space: nowrap; }
+
+/* Grade de 12 colunas, empilhada no celular. */
+.row { display: flex; flex-wrap: wrap; margin: 0 -8px; row-gap: 16px; }
+.row > * { padding: 0 8px; width: 100%; min-width: 0; }
+.g-4 { row-gap: 24px; }
+.col-6 { width: 50%; }
+@media (min-width: 768px) { .col-md-6 { width: 50%; } }
+@media (min-width: 992px) {
+    .col-lg-3 { width: 25%; } .col-lg-4 { width: 33.333%; } .col-lg-5 { width: 41.667%; }
+    .col-lg-6 { width: 50%; } .col-lg-7 { width: 58.333%; }
+}
+
+.form-select {
+    font: inherit; font-size: 0.9rem; padding: 4px 8px; border: 1px solid var(--borda);
+    border-radius: 6px; background: var(--superficie-1); color: var(--texto-1);
+}
+.form-check-input { width: 16px; height: 16px; accent-color: var(--serie-1); margin: 0; }
+
+.table-responsive { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { padding: 6px 8px; border-bottom: 1px solid var(--grade); text-align: left; vertical-align: middle; }
+.table th.text-end, .table td.text-end { text-align: right; }
+.texto-secundario { color: var(--texto-2); }
+
+.cartao {
+    background: var(--superficie-1);
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin: 0;
+}
+.tile { height: 100%; }
+.tile-rotulo { color: var(--texto-2); font-size: 0.85rem; }
+.tile-valor { font-size: 2rem; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.tile-de { font-size: 1rem; font-weight: 400; color: var(--texto-2); }
+.tile-nota { color: var(--texto-2); font-size: 0.85rem; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+
+/* Status: sempre ícone + rótulo, nunca só a cor. */
+.status {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 1px 8px; border-radius: 999px;
+    font-size: 0.78rem; font-weight: 600; white-space: nowrap;
+    color: var(--texto-1);
+}
+.status-critico { background: var(--status-critico-fundo); }
+.status-critico > span { color: var(--status-critico); }
+.status-alerta { background: var(--status-alerta-fundo); }
+.status-alerta > span { color: var(--status-alerta); }
+.status-bom { background: var(--status-bom-fundo); }
+.status-bom > span { color: var(--status-bom); }
+
+.grafico figcaption { margin-bottom: 10px; }
+.grafico figcaption p { font-size: 0.82rem; }
+.area-grafico { position: relative; height: 240px; }
+
+.tabela caption { caption-side: top; color: var(--texto-2); font-size: 0.85rem; }
+.tabela th { color: var(--texto-2); font-weight: 500; font-size: 0.82rem; }
+.num { font-variant-numeric: tabular-nums; }
+.col-motivo { min-width: 220px; }
+.painel code { color: var(--texto-1); font-size: 0.85em; }
+
+.resumo { display: grid; grid-template-columns: auto auto; gap: 2px 12px; font-size: 0.82rem; }
+.resumo dt { font-weight: 400; color: var(--texto-2); overflow-wrap: anywhere; }
+.resumo dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+.conferencia { font-size: 0.9rem; }
+.vazio pre { background: var(--superficie-pagina); padding: 10px; border-radius: 6px; }
+details.cartao summary { cursor: pointer; font-weight: 500; }
+.painel pre { white-space: pre-wrap; overflow-wrap: anywhere; }

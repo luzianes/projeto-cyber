@@ -1,0 +1,8 @@
+# Dependências da IA de anomalias (apps/deteccao_anomalias.py).
+# Ficam separadas do requirements.txt de propósito: scikit-learn + numpy +
+# scipy somam ~150 MB e o servidor web não precisa deles (o painel só lê a
+# tabela). Instale onde for rodar `manage.py detectar_anomalias`:
+#     pip install -r requirements-ia.txt
+-r requirements.txt
+numpy==2.5.5
+scikit-learn==1.9.1

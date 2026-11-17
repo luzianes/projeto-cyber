@@ -60,8 +60,13 @@ def _limpar_detalhes(detalhes):
 
 
 def registrar_evento(tipo, *, usuario='', ip=None, origem='', duracao_ms=None,
-                     sucesso=None, severidade=None, detalhes=None, simulado=False):
-    """Grava um evento na tabela EventoSeguranca. Retorna o objeto ou None."""
+                     sucesso=None, severidade=None, detalhes=None, simulado=False,
+                     criado_em=None):
+    """Grava um evento na tabela EventoSeguranca. Retorna o objeto ou None.
+
+    `criado_em` é opcional (padrão: agora). Serve para eventos derivados que
+    descrevem um momento passado, ex.: a anomalia detectada numa janela de
+    ontem fica datada na própria janela, não na hora em que a IA rodou."""
     if _silenciado.get():
         return None
     try:
@@ -70,8 +75,10 @@ def registrar_evento(tipo, *, usuario='', ip=None, origem='', duracao_ms=None,
         categoria, sev_padrao = CATALOGO.get(tipo, ('anomalia', 'info'))
         if sucesso is None:
             sucesso = tipo not in TIPOS_DE_FALHA
+        extra = {'criado_em': criado_em} if criado_em is not None else {}
         with transaction.atomic():
             return EventoSeguranca.objects.create(
+                **extra,
                 tipo=tipo,
                 categoria=categoria,
                 severidade=severidade or sev_padrao,
