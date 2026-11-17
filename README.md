@@ -34,6 +34,8 @@ dois tipos de usuário: **cliente** (busca, favorita, reserva horário, avalia) 
 | **Logs de segurança** | Login, acesso negado e decisões de moderação por IA registrados em `projeto/logs/security.log` |
 | **Segurança de IA** | Moderação de avaliações via API do Gemini; vulnerabilidade de *prompt injection* identificada, explorada e corrigida (isolamento instrução/dado + saída estruturada) |
 | **Ataques à cifra própria** | Força bruta, diferencial e estatístico contra a cifra da mensageria (`manage.py rodar_ataques`); veredito: sem efeito avalanche e insegura, com a chave de 64 bits recuperada em ~1 s a partir de texto conhecido. Ver [docs/ATAQUES_CIFRA.md](docs/ATAQUES_CIFRA.md) |
+| **IA de anomalias** | Detector híbrido sobre a tabela de eventos: regras de assinatura + Isolation Forest (`manage.py detectar_anomalias`); em dados simulados, precisão 0,85 e recall 0,87 na média de 5 sementes de validação. Ver [docs/IA_ANOMALIAS.md](docs/IA_ANOMALIAS.md) |
+| **Painel de segurança** | Dashboard restrito à equipe em `/painel-seguranca/` com ataques, falhas e anomalias. Ver [docs/PAINEL_SEGURANCA.md](docs/PAINEL_SEGURANCA.md) e o relatório consolidado em [docs/RELATORIO_FINAL.md](docs/RELATORIO_FINAL.md) |
 
 Evidências completas (antes/depois de cada vulnerabilidade) estão em [evidencias/](evidencias/).
 Vulnerabilidades ainda em aberto e decisões técnicas justificadas ficam no relatório técnico do

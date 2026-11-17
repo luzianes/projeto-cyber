@@ -1,6 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
+from . import views_painel
 from .views import *
 
 urlpatterns = [
@@ -45,4 +46,5 @@ urlpatterns = [
     path('editar_perfil_sucesso/', views.editar_perfil_sucesso, name='editar_perfil_sucesso'),
     path('editar_cadastro_cafeteria_sucesso/', views.editar_cadastro_cafeteria_sucesso, name='editar_cadastro_cafeteria_sucesso'),
     path('cafeteria/<int:cafe_id>/editar/', editar_cadastro_cafe, name='editar_cadastro'),
+    path('painel-seguranca/', views_painel.painel_seguranca, name='painel_seguranca'),
 ]

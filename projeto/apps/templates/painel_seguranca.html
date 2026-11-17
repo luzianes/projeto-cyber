@@ -1,0 +1,262 @@
+{% load static %}<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de segurança</title>
+    {# CSS próprio, sem Bootstrap: a CSP do projeto (security_headers.py) só libera folhas de estilo do próprio site. #}
+    <link rel="stylesheet" href="{% static 'css/painel_seguranca.css' %}">
+</head>
+<body class="painel">
+<div class="container-xl py-4">
+
+    <header class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1">Painel de segurança</h1>
+            <p class="texto-secundario mb-0">
+                Ataques à cifra, eventos e anomalias apontadas pela IA · {{ periodo }}
+                {% if not incluir_simulados %}· só eventos reais{% endif %}
+            </p>
+        </div>
+        <form method="get" class="filtros d-flex flex-wrap align-items-center gap-3" id="filtros">
+            <label class="d-flex align-items-center gap-2 mb-0">
+                <span class="texto-secundario">Período</span>
+                <select name="dias" class="form-select form-select-sm" data-autoenvio>
+                    {% for valor, nome in periodos %}
+                    <option value="{{ valor }}" {% if valor == dias %}selected{% endif %}>{{ nome }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="d-flex align-items-center gap-2 mb-0">
+                <input type="hidden" name="simulados" value="0">
+                <input type="checkbox" class="form-check-input mt-0" name="simulados" value="1"
+                       {% if incluir_simulados %}checked{% endif %} data-autoenvio>
+                <span>Incluir dados simulados</span>
+            </label>
+            <noscript><button type="submit" class="btn btn-sm btn-outline-secondary">Aplicar</button></noscript>
+        </form>
+    </header>
+
+    {# ---------- Indicadores ---------- #}
+    <section class="row g-3 mb-4" aria-label="Indicadores">
+        <div class="col-6 col-lg-3">
+            <div class="cartao tile">
+                <div class="tile-rotulo">Eventos analisados</div>
+                <div class="tile-valor">{{ kpis.eventos }}</div>
+                <div class="tile-nota">{{ kpis.falhas }} falhas ({{ kpis.taxa_falha }}%)</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="cartao tile">
+                <div class="tile-rotulo">Anomalias detectadas</div>
+                <div class="tile-valor">{{ kpis.anomalias }}</div>
+                <div class="tile-nota">
+                    <span class="status status-critico"><span aria-hidden="true">▲</span> {{ kpis.criticas }} críticas</span>
+                    <span class="status status-alerta"><span aria-hidden="true">●</span> {{ kpis.alertas }} alertas</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="cartao tile">
+                <div class="tile-rotulo">Origens suspeitas (IPs)</div>
+                <div class="tile-valor">{{ kpis.origens_suspeitas }}</div>
+                <div class="tile-nota">com ao menos uma anomalia</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="cartao tile">
+                <div class="tile-rotulo">Cifra da mensageria</div>
+                {% if kpis.ataques_executados %}
+                <div class="tile-valor">{{ kpis.ataques_vulneraveis }}<span class="tile-de"> de {{ kpis.ataques_executados }}</span></div>
+                <div class="tile-nota">ataques acharam vulnerabilidade</div>
+                {% else %}
+                <div class="tile-valor">—</div>
+                <div class="tile-nota">nenhum ataque executado ainda</div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    {% if conferencia %}
+    <p class="cartao conferencia mb-4">
+        <strong>Conferência com o gabarito (dados simulados):</strong>
+        dos {{ conferencia.alertas }} alertas da IA sobre dados sintéticos, {{ conferencia.acertos }}
+        correspondem a anomalias injetadas e {{ conferencia.falsos_positivos }} caíram em tráfego normal.
+        O gabarito não é usado pela IA para detectar; serve só para medir o acerto.
+    </p>
+    {% endif %}
+
+    {% if not kpis.eventos and not kpis.anomalias %}
+    <div class="cartao vazio mb-4">
+        <p class="mb-2"><strong>Ainda não há eventos neste período.</strong> Para popular o painel, dentro de <code>projeto/</code>:</p>
+        <pre class="mb-0"><code>python manage.py gerar_eventos_simulados --qtd 50000
+python manage.py detectar_anomalias
+python manage.py rodar_ataques</code></pre>
+    </div>
+    {% endif %}
+
+    {# ---------- Séries temporais (dois gráficos: escalas diferentes, nunca eixo duplo) ---------- #}
+    <section class="row g-3 mb-4">
+        <div class="col-lg-6">
+            <figure class="cartao grafico">
+                <figcaption>
+                    <h2 class="h6 mb-0">Falhas de segurança</h2>
+                    <p class="texto-secundario mb-0">logins recusados, acessos negados, falhas de decifragem, arquivos alterados</p>
+                </figcaption>
+                <div class="area-grafico"><canvas id="g-falhas" role="img" aria-label="Falhas de segurança ao longo do tempo"></canvas></div>
+            </figure>
+        </div>
+        <div class="col-lg-6">
+            <figure class="cartao grafico">
+                <figcaption>
+                    <h2 class="h6 mb-0">Anomalias detectadas</h2>
+                    <p class="texto-secundario mb-0">janelas de 5 min marcadas pela IA, por início da janela</p>
+                </figcaption>
+                <div class="area-grafico"><canvas id="g-anomalias" role="img" aria-label="Anomalias detectadas ao longo do tempo"></canvas></div>
+            </figure>
+        </div>
+    </section>
+
+    <section class="row g-3 mb-4">
+        <div class="col-lg-7">
+            <figure class="cartao grafico">
+                <figcaption><h2 class="h6 mb-0">Anomalias por motivo</h2>
+                    <p class="texto-secundario mb-0">a feature ou regra que mais pesou em cada alerta</p></figcaption>
+                <div class="area-grafico" id="a-motivo"><canvas id="g-motivo" role="img" aria-label="Anomalias por motivo"></canvas></div>
+            </figure>
+        </div>
+        <div class="col-lg-5">
+            <figure class="cartao grafico">
+                <figcaption><h2 class="h6 mb-0">Anomalias por método</h2>
+                    <p class="texto-secundario mb-0">quem disparou o alerta</p></figcaption>
+                <div class="area-grafico" id="a-metodo"><canvas id="g-metodo" role="img" aria-label="Anomalias por método de detecção"></canvas></div>
+            </figure>
+        </div>
+    </section>
+
+    {# ---------- Ataques ---------- #}
+    <section class="mb-4">
+        <h2 class="h5 mb-3">Ataques à cifra da mensageria</h2>
+        <div class="row g-3">
+            {% for a in ataques %}
+            <div class="col-lg-4">
+                <div class="cartao h-100">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <h3 class="h6 mb-0">{{ a.nome }}</h3>
+                        {% if a.ultimo %}
+                            {% if a.ultimo.vulneravel %}
+                            <span class="status status-critico"><span aria-hidden="true">▲</span> Vulnerável</span>
+                            {% else %}
+                            <span class="status status-bom"><span aria-hidden="true">✓</span> Resistiu</span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    {% if a.ultimo %}
+                    <p class="texto-secundario small mb-2">
+                        Última execução {{ a.ultimo.quando|date:"d/m/Y H:i" }} · {{ a.ultimo.duracao_s }} s ·
+                        {{ a.execucoes }} execuç{{ a.execucoes|pluralize:"ão,ões" }}
+                    </p>
+                    <dl class="resumo mb-0">
+                        {% for chave, valor in a.ultimo.resumo %}
+                        <dt>{{ chave }}</dt><dd>{% if valor is True %}sim{% elif valor is False %}não{% else %}{{ valor }}{% endif %}</dd>
+                        {% endfor %}
+                    </dl>
+                    {% else %}
+                    <p class="texto-secundario small mb-0">Ainda não executado. Rode <code>python manage.py rodar_ataques</code>.</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {# ---------- Anomalias recentes ---------- #}
+    <section class="cartao mb-4">
+        <h2 class="h5 mb-3">Anomalias recentes</h2>
+        {% if recentes %}
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0 tabela">
+                <thead><tr>
+                    <th scope="col">Janela</th><th scope="col">Origem</th><th scope="col">Severidade</th>
+                    <th scope="col">Motivo</th><th scope="col">Método</th><th scope="col" class="text-end">Score</th>
+                    <th scope="col">O que mais pesou</th>
+                    {% if incluir_simulados %}<th scope="col">Gabarito</th>{% endif %}
+                </tr></thead>
+                <tbody>
+                {% for r in recentes %}
+                <tr>
+                    <td class="text-nowrap">{{ r.quando|date:"d/m H:i" }}</td>
+                    <td><code>{{ r.entidade }}</code></td>
+                    <td>{% if r.severidade == 'critico' %}<span class="status status-critico"><span aria-hidden="true">▲</span> Crítico</span>
+                        {% else %}<span class="status status-alerta"><span aria-hidden="true">●</span> Alerta</span>{% endif %}</td>
+                    <td class="col-motivo">{{ r.descricao }}</td>
+                    <td class="text-nowrap">{{ r.metodo }}</td>
+                    <td class="text-end num">{% if r.score is not None %}{{ r.score|floatformat:3 }}{% else %}—{% endif %}</td>
+                    <td class="small">
+                        {% for nome, valor, ref, eh_limiar in r.destaques %}
+                        <span class="text-nowrap">{{ nome }} = {{ valor }} <span class="texto-secundario">({% if eh_limiar %}limiar {{ ref }}{% else %}mediana {{ ref|floatformat:"-1" }}{% endif %})</span></span>{% if not forloop.last %}<br>{% endif %}
+                        {% endfor %}
+                    </td>
+                    {% if incluir_simulados %}<td class="small">{% if r.cenario_simulado %}{{ r.cenario_simulado }}{% else %}<span class="texto-secundario">real</span>{% endif %}</td>{% endif %}
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="texto-secundario mb-0">Nenhuma anomalia no período. A IA roda com <code>python manage.py detectar_anomalias</code>.</p>
+        {% endif %}
+    </section>
+
+    <section class="row g-3 mb-4">
+        <div class="col-lg-7">
+            <figure class="cartao grafico">
+                <figcaption><h2 class="h6 mb-0">Eventos por tipo</h2>
+                    <p class="texto-secundario mb-0">tudo o que a camada Big Data registrou no período</p></figcaption>
+                <div class="area-grafico" id="a-tipo"><canvas id="g-tipo" role="img" aria-label="Eventos por tipo"></canvas></div>
+            </figure>
+        </div>
+        <div class="col-lg-5">
+            <div class="cartao h-100">
+                <h2 class="h6 mb-3">Origens com mais anomalias</h2>
+                {% if top_origens %}
+                <table class="table table-sm mb-0 tabela">
+                    <thead><tr><th scope="col">IP</th><th scope="col" class="text-end">Anomalias</th></tr></thead>
+                    <tbody>{% for ip, n in top_origens %}<tr><td><code>{{ ip }}</code></td><td class="text-end num">{{ n }}</td></tr>{% endfor %}</tbody>
+                </table>
+                {% else %}<p class="texto-secundario mb-0">Nenhuma origem com anomalia no período.</p>{% endif %}
+            </div>
+        </div>
+    </section>
+
+    {# Tabela com todos os números dos gráficos (acessibilidade / leitura sem gráfico). #}
+    <details class="cartao mb-4">
+        <summary>Ver os dados dos gráficos em tabela</summary>
+        <div class="row g-4 mt-1">
+            <div class="col-md-6">
+                <table class="table table-sm tabela"><caption>Falhas e anomalias por período</caption>
+                    <thead><tr><th scope="col">Período</th><th scope="col" class="text-end">Falhas</th><th scope="col" class="text-end">Anomalias</th></tr></thead>
+                    <tbody id="t-serie"></tbody></table>
+            </div>
+            <div class="col-md-6">
+                <table class="table table-sm tabela"><caption>Anomalias por motivo</caption>
+                    <thead><tr><th scope="col">Motivo</th><th scope="col" class="text-end">Anomalias</th></tr></thead>
+                    <tbody>{% for nome, n in graficos.por_motivo %}<tr><td>{{ nome }}</td><td class="text-end num">{{ n }}</td></tr>{% endfor %}</tbody></table>
+                <table class="table table-sm tabela"><caption>Eventos por tipo</caption>
+                    <thead><tr><th scope="col">Tipo</th><th scope="col" class="text-end">Eventos</th></tr></thead>
+                    <tbody>{% for nome, n in graficos.por_tipo %}<tr><td>{{ nome }}</td><td class="text-end num">{{ n }}</td></tr>{% endfor %}</tbody></table>
+            </div>
+        </div>
+    </details>
+
+    <footer class="texto-secundario small">
+        Dados: tabela <code>EventoSeguranca</code>. A IA de anomalias atualiza os alertas com
+        <code>python manage.py detectar_anomalias</code>. Acesso restrito à equipe.
+    </footer>
+</div>
+
+{{ graficos|json_script:"dados-graficos" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
+<script src="{% static 'js/painel_seguranca.js' %}"></script>
+</body>
+</html>

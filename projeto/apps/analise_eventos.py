@@ -73,7 +73,7 @@ def top_origens(tipo, campo='ip', limite=10, incluir_simulados=True):
     return list(qs.values_list(campo).annotate(n=Count('id')).order_by('-n')[:limite])
 
 
-def features_por_janela(minutos=5, incluir_simulados=True):
+def features_por_janela(minutos=5, incluir_simulados=True, excluir_tipos=()):
     """Agrega eventos por (entidade, janela) para a IA de anomalias.
 
     Entidade = IP (ou, sem IP, o usuário). Cada linha:
@@ -83,12 +83,19 @@ def features_por_janela(minutos=5, incluir_simulados=True):
     `cenario_simulado` vem do gerador de eventos sintéticos ('normal' ou o
     nome da anomalia injetada) e existe para medir a IA; NÃO deve ser usado
     como feature de treino.
+
+    `excluir_tipos`: tipos que não entram na contagem. A IA passa os eventos
+    que ela mesma gera ('anomalia') e os resumos de ataque, senão cada
+    execução contaria os próprios alertas da execução anterior como atividade.
     """
     janela = timedelta(minutes=minutos).total_seconds()
     acumulado = defaultdict(lambda: {
         'total': 0, 'usuarios': set(), 'cenarios': set(), **{t: 0 for t in TIPOS_FEATURE},
     })
-    qs = eventos(incluir_simulados).values_list('criado_em', 'tipo', 'ip', 'usuario', 'detalhes')
+    qs = eventos(incluir_simulados)
+    if excluir_tipos:
+        qs = qs.exclude(tipo__in=list(excluir_tipos))
+    qs = qs.values_list('criado_em', 'tipo', 'ip', 'usuario', 'detalhes')
     for criado_em, tipo, ip, usuario, detalhes in qs.iterator(chunk_size=5000):
         entidade = ip or usuario or 'desconhecida'
         inicio = int(criado_em.timestamp() // janela * janela)
