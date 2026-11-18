@@ -21,6 +21,7 @@
             <h1>Mensagens dentro de imagens</h1>
             <p>Criptografe uma mensagem e oculte o texto cifrado nos bits menos significativos dos canais RGB. Use o PNG gerado e a mesma chave para recuperar a mensagem.</p>
             <p class="fluxo">Mensagem → Criptografia → LSB → PNG → Extração → Descriptografia</p>
+            <p><strong>Cenário no Aponte Cafés:</strong> uma mensagem privada ao empresário (pedido especial, dado de contato) já é cifrada pelo app. Aqui ela pode seguir também dentro de uma imagem, por outro canal. A cifra protege o <em>conteúdo</em>; a imagem esconde que existe uma mensagem. Fotos circulam o tempo todo no app (perfil, cafeteria, avaliações), então mais uma imagem não chama atenção.</p>
         </div>
         <noscript><p class="aviso">Ative o JavaScript para enviar as imagens, visualizar os resultados e baixar o PNG.</p></noscript>
         <div class="operacoes">
@@ -33,6 +34,7 @@
                     <input id="imagem-original" type="file" name="imagem" accept="image/png,image/jpeg,image/bmp,image/webp" required aria-describedby="limites-imagem">
                     <p class="ajuda" id="limites-imagem">PNG, JPEG, BMP ou WebP estáticos, de até 8 bits por canal (sem CMYK). Até {{ max_upload_mb }} MiB e {{ max_pixels }} pixels. A saída será PNG, com as mesmas dimensões, limitada a {{ max_upload_mb }} MiB.</p>
                     <label for="mensagem-original">Mensagem</label>
+                    <p class="ajuda"><button type="button" id="usar-modelo" class="secundario">Usar modelo de mensagem privada</button></p>
                     <textarea id="mensagem-original" name="mensagem" rows="6" required aria-describedby="limite-mensagem" placeholder="Escreva a mensagem que deseja ocultar."></textarea>
                     <p class="ajuda" id="limite-mensagem"><span id="contador-mensagem">0</span> / {{ max_mensagem_bytes }} bytes em UTF-8. A capacidade real depende da imagem e inclui a criptografia e os dados de integridade.</p>
                     <label for="chave-ocultar">Chave existente <span class="opcional">(opcional)</span></label>

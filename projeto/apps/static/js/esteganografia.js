@@ -92,6 +92,14 @@
         el("contador-mensagem").textContent = numero(tamanho);
     });
 
+    // Modelo do cenário "mensagem privada cliente -> empresário" (só preenche o campo).
+    el("usar-modelo").addEventListener("click", () => {
+        const campo = el("mensagem-original");
+        campo.value = "Mensagem privada para o empresário\nCafeteria: \nReserva: \nPedido especial: \nContato: ";
+        campo.dispatchEvent(new Event("input"));
+        campo.focus();
+    });
+
     ocultar.addEventListener("submit", async (evento) => {
         evento.preventDefault();
         limpar("ocultar");
